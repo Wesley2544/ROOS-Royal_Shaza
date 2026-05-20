@@ -1,13 +1,154 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ── 1. USERS ──────────────────────────────────────────────────────
+enum Role {
+  kitchen
+  waiter
+  manager
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String   @db.VarChar(120)
+  email         String   @unique @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  role          Role
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now()) @db.Timestamptz()
+  updated_at    DateTime @updatedAt @db.Timestamptz()
+
+  orders_served  Order[]          @relation("ServedBy")
+  status_changes OrderStatusLog[]
+
+  @@map("users")
+}
+
+// ── 2. RESTAURANT TABLES ─────────────────────────────────────────
+enum TableStatus {
+  free
+  ordering
+  waiting
+  served
+}
+
+model RestaurantTable {
+  id           String      @id @default(uuid())
+  table_number Int         @unique
+  qr_code_url  String?     @db.VarChar(500)
+  status       TableStatus @default(free)
+  capacity     Int         @default(4)
+  created_at   DateTime    @default(now()) @db.Timestamptz()
+
+  orders Order[]
+
+  @@map("restaurant_tables")
+}
+
+// ── 3. MENU CATEGORIES ────────────────────────────────────────────
+model MenuCategory {
+  id         String     @id @default(uuid())
+  name       String     @db.VarChar(80)
+  sort_order Int        @default(0)
+  is_active  Boolean    @default(true)
+
+  items MenuItem[]
+
+  @@map("menu_categories")
+}
+
+// ── 4. MENU ITEMS ─────────────────────────────────────────────────
+model MenuItem {
+  id           String   @id @default(uuid())
+  category_id  String
+  name         String   @db.VarChar(120)
+  description  String?  @db.Text
+  price        Int
+  dietary_tags String[] @default([])
+  image_url    String?  @db.VarChar(500)
+  is_available Boolean  @default(true)
+  is_deleted   Boolean  @default(false)
+  created_at   DateTime @default(now()) @db.Timestamptz()
+  updated_at   DateTime @updatedAt @db.Timestamptz()
+
+  category    MenuCategory @relation(fields: [category_id], references: [id])
+  order_items OrderItem[]
+
+  @@map("menu_items")
+}
+
+// ── 5. ORDERS ─────────────────────────────────────────────────────
+enum OrderStatus {
+  new
+  preparing
+  ready
+  served
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  table_id      String
+  status        OrderStatus @default(new)
+  total_amount  Int
+  special_notes String?     @db.Text
+  served_by     String?
+  created_at    DateTime    @default(now()) @db.Timestamptz()
+  updated_at    DateTime    @updatedAt @db.Timestamptz()
+
+  table         RestaurantTable  @relation(fields: [table_id], references: [id])
+  waiter        User?            @relation("ServedBy", fields: [served_by], references: [id])
+  items         OrderItem[]
+  status_log    OrderStatusLog[]
+  notifications Notification[]
+
+  @@map("orders")
+}
+
+// ── 6. ORDER ITEMS ────────────────────────────────────────────────
+model OrderItem {
+  id           String  @id @default(uuid())
+  order_id     String
+  menu_item_id String
+  item_name    String  @db.VarChar(120)
+  quantity     Int
+  unit_price   Int
+  subtotal     Int
+  item_notes   String? @db.Text
+
+  order     Order    @relation(fields: [order_id], references: [id])
+  menu_item MenuItem @relation(fields: [menu_item_id], references: [id])
+
+  @@map("order_items")
+}
+
+// ── 7. ORDER STATUS LOG ───────────────────────────────────────────
+model OrderStatusLog {
+  id         String      @id @default(uuid())
+  order_id   String
+  status     OrderStatus
+  changed_by String?
+  changed_at DateTime    @default(now()) @db.Timestamptz()
+
+  order Order @relation(fields: [order_id], references: [id])
+  user  User? @relation(fields: [changed_by], references: [id])
+
+  @@map("order_status_log")
+}
+
+// ── 8. NOTIFICATIONS ─────────────────────────────────────────────
+model Notification {
+  id         String   @id @default(uuid())
+  order_id   String
+  type       String   @db.VarChar(40)
+  message    String   @db.Text
+  created_at DateTime @default(now()) @db.Timestamptz()
+
+  order Order @relation(fields: [order_id], references: [id])
+
+  @@map("notifications")
 }
