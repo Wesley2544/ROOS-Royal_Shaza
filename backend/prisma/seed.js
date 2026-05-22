@@ -1,9 +1,7 @@
-import pkg from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import bcrypt from 'bcryptjs'
-
-const { PrismaClient } = pkg
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -14,35 +12,28 @@ const prisma = new PrismaClient({ adapter })
 async function main() {
   console.log(' Seeding database...')
 
-  // ── 1. Menu categories ───────────────────────────────────────
+  // ── Clear existing data (in order — children before parents) ──
+  console.log('Clearing existing data...')
+  await prisma.notification.deleteMany()
+  await prisma.orderStatusLog.deleteMany()
+  await prisma.orderItem.deleteMany()
+  await prisma.order.deleteMany()
+  await prisma.menuItem.deleteMany()
+  await prisma.menuCategory.deleteMany()
+  await prisma.restaurantTable.deleteMany()
+
+  // ── 1. Menu categories ────────────────────────────────────────
   console.log('Creating menu categories...')
-  const starters  = await prisma.menuCategory.upsert({
-    where:  { id: 'cat-starters' },
-    update: {},
-    create: { id: 'cat-starters', name: 'Starters',  sort_order: 1 },
-  })
-  const mains = await prisma.menuCategory.upsert({
-    where:  { id: 'cat-mains' },
-    update: {},
-    create: { id: 'cat-mains',    name: 'Mains',     sort_order: 2 },
-  })
-  const desserts = await prisma.menuCategory.upsert({
-    where:  { id: 'cat-desserts' },
-    update: {},
-    create: { id: 'cat-desserts', name: 'Desserts',  sort_order: 3 },
-  })
-  const drinks = await prisma.menuCategory.upsert({
-    where:  { id: 'cat-drinks' },
-    update: {},
-    create: { id: 'cat-drinks',   name: 'Drinks',    sort_order: 4 },
-  })
+  const starters = await prisma.menuCategory.create({ data: { name: 'Starters',  sort_order: 1 } })
+  const mains    = await prisma.menuCategory.create({ data: { name: 'Mains',     sort_order: 2 } })
+  const desserts = await prisma.menuCategory.create({ data: { name: 'Desserts',  sort_order: 3 } })
+  const drinks   = await prisma.menuCategory.create({ data: { name: 'Drinks',    sort_order: 4 } })
 
   // ── 2. Menu items ─────────────────────────────────────────────
   console.log('Creating menu items...')
   const menuItems = [
     // Starters
     {
-      id: 'item-calamari',
       category_id:  starters.id,
       name:         'Grilled Calamari',
       description:  'Tender calamari grilled with lemon herb dressing',
@@ -50,7 +41,6 @@ async function main() {
       dietary_tags: ['gluten_free'],
     },
     {
-      id: 'item-bruschetta',
       category_id:  starters.id,
       name:         'Bruschetta',
       description:  'Toasted bread with fresh tomato, basil and olive oil',
@@ -58,7 +48,6 @@ async function main() {
       dietary_tags: ['vegetarian'],
     },
     {
-      id: 'item-soup',
       category_id:  starters.id,
       name:         'Soup of the Day',
       description:  'Ask your waiter for today\'s selection',
@@ -67,7 +56,6 @@ async function main() {
     },
     // Mains
     {
-      id: 'item-tilapia',
       category_id:  mains.id,
       name:         'Grilled Tilapia',
       description:  'Fresh tilapia fillet with coconut rice and seasonal vegetables',
@@ -75,7 +63,6 @@ async function main() {
       dietary_tags: ['gluten_free'],
     },
     {
-      id: 'item-beef',
       category_id:  mains.id,
       name:         'Beef Tenderloin',
       description:  'Pan-seared beef tenderloin with mushroom sauce and fries',
@@ -83,7 +70,6 @@ async function main() {
       dietary_tags: [],
     },
     {
-      id: 'item-pasta',
       category_id:  mains.id,
       name:         'Pasta Arrabbiata',
       description:  'Penne pasta in spicy tomato sauce with olives and parmesan',
@@ -91,7 +77,6 @@ async function main() {
       dietary_tags: ['vegetarian', 'spicy'],
     },
     {
-      id: 'item-tikka',
       category_id:  mains.id,
       name:         'Chicken Tikka',
       description:  'Marinated chicken tikka served with naan and mint chutney',
@@ -100,7 +85,6 @@ async function main() {
     },
     // Desserts
     {
-      id: 'item-lavacake',
       category_id:  desserts.id,
       name:         'Chocolate Lava Cake',
       description:  'Warm chocolate cake with a molten centre, served with vanilla ice cream',
@@ -108,7 +92,6 @@ async function main() {
       dietary_tags: ['vegetarian'],
     },
     {
-      id: 'item-sorbet',
       category_id:  desserts.id,
       name:         'Mango Sorbet',
       description:  'Fresh seasonal mango sorbet — light and refreshing',
@@ -117,7 +100,6 @@ async function main() {
     },
     // Drinks
     {
-      id: 'item-passion',
       category_id:  drinks.id,
       name:         'Fresh Passion Juice',
       description:  'Cold-pressed fresh passion fruit juice',
@@ -125,7 +107,6 @@ async function main() {
       dietary_tags: ['vegetarian', 'gluten_free'],
     },
     {
-      id: 'item-dawa',
       category_id:  drinks.id,
       name:         'Dawa Cocktail',
       description:  'Classic Kenyan cocktail — vodka, lime, honey and ice',
@@ -135,20 +116,14 @@ async function main() {
   ]
 
   for (const item of menuItems) {
-    await prisma.menuItem.upsert({
-      where:  { id: item.id },
-      update: {},
-      create: item,
-    })
+    await prisma.menuItem.create({ data: item })
   }
 
   // ── 3. Restaurant tables ──────────────────────────────────────
   console.log('Creating restaurant tables...')
   for (let i = 1; i <= 12; i++) {
-    await prisma.restaurantTable.upsert({
-      where:  { table_number: i },
-      update: {},
-      create: {
+    await prisma.restaurantTable.create({
+      data: {
         table_number: i,
         qr_code_url:  `https://royalshaza.co.ke/menu?table=${i}`,
         status:       'free',
@@ -171,6 +146,7 @@ async function main() {
     },
   })
 
+  console.log('')
   console.log(' Seeding complete!')
   console.log('   4 menu categories')
   console.log('   11 menu items')
