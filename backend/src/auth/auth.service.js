@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import prisma from '../lib/prisma.js'
 
-// ── Validation schemas ────────────
+//  Validation schemas 
 const loginSchema = z.object({
   email:    z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -18,7 +18,7 @@ const registerSchema = z.object({
   }),
 })
 
-// ── Token helper ─────────
+//  Token helper
 function signToken(user) {
   return jwt.sign(
     { userId: user.id, role: user.role },
@@ -27,7 +27,7 @@ function signToken(user) {
   )
 }
 
-// ── Login ─────────
+// Login
 export async function loginUser(email, password) {
   // 1. Validate input
   const parsed = loginSchema.safeParse({ email, password })
@@ -69,7 +69,7 @@ export async function loginUser(email, password) {
   }
 }
 
-// ── Register ─────────
+//  Register new user (manager only) 
 export async function registerUser({ name, email, password, role }) {
   // 1. Validate input
   const parsed = registerSchema.safeParse({ name, email, password, role })

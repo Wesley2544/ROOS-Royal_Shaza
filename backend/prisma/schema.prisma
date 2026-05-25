@@ -6,7 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// ── 1. USERS ──────────────────────────────────────────────────────
+//  1. USERS 
 enum Role {
   kitchen
   waiter
@@ -29,7 +29,7 @@ model User {
   @@map("users")
 }
 
-// ── 2. RESTAURANT TABLES ─────────────────────────────────────────
+//  2. RESTAURANT TABLES 
 enum TableStatus {
   free
   ordering
@@ -50,7 +50,7 @@ model RestaurantTable {
   @@map("restaurant_tables")
 }
 
-// ── 3. MENU CATEGORIES ────────────────────────────────────────────
+//  3. MENU CATEGORIES 
 model MenuCategory {
   id         String     @id @default(uuid())
   name       String     @db.VarChar(80)
@@ -62,7 +62,7 @@ model MenuCategory {
   @@map("menu_categories")
 }
 
-// ── 4. MENU ITEMS ─────────────────────────────────────────────────
+//  4. MENU ITEMS 
 model MenuItem {
   id           String   @id @default(uuid())
   category_id  String
@@ -82,7 +82,7 @@ model MenuItem {
   @@map("menu_items")
 }
 
-// ── 5. ORDERS ─────────────────────────────────────────────────────
+//  5. ORDERS 
 enum OrderStatus {
   new
   preparing
@@ -109,7 +109,7 @@ model Order {
   @@map("orders")
 }
 
-// ── 6. ORDER ITEMS ────────────────────────────────────────────────
+//  6. ORDER ITEMS 
 model OrderItem {
   id           String  @id @default(uuid())
   order_id     String
@@ -126,7 +126,7 @@ model OrderItem {
   @@map("order_items")
 }
 
-// ── 7. ORDER STATUS LOG ───────────────────────────────────────────
+//  7. ORDER STATUS LOG 
 model OrderStatusLog {
   id         String      @id @default(uuid())
   order_id   String
@@ -140,7 +140,7 @@ model OrderStatusLog {
   @@map("order_status_log")
 }
 
-// ── 8. NOTIFICATIONS ─────────────────────────────────────────────
+//  8. NOTIFICATIONS 
 model Notification {
   id         String   @id @default(uuid())
   order_id   String

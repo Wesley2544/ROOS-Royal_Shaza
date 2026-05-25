@@ -12,7 +12,7 @@ const prisma = new PrismaClient({ adapter })
 async function main() {
   console.log(' Seeding database...')
 
-  // ── Clear existing data (in order — children before parents) ──
+  //  Clear existing data (in order — children before parents) 
   console.log('Clearing existing data...')
   await prisma.notification.deleteMany()
   await prisma.orderStatusLog.deleteMany()
@@ -22,14 +22,14 @@ async function main() {
   await prisma.menuCategory.deleteMany()
   await prisma.restaurantTable.deleteMany()
 
-  // ── 1. Menu categories ────────────────────────────────────────
+  //  1. Menu categories
   console.log('Creating menu categories...')
   const starters = await prisma.menuCategory.create({ data: { name: 'Starters',  sort_order: 1 } })
   const mains    = await prisma.menuCategory.create({ data: { name: 'Mains',     sort_order: 2 } })
   const desserts = await prisma.menuCategory.create({ data: { name: 'Desserts',  sort_order: 3 } })
   const drinks   = await prisma.menuCategory.create({ data: { name: 'Drinks',    sort_order: 4 } })
 
-  // ── 2. Menu items ─────────────────────────────────────────────
+  //  2. Menu items
   console.log('Creating menu items...')
   const menuItems = [
     // Starters
@@ -119,7 +119,7 @@ async function main() {
     await prisma.menuItem.create({ data: item })
   }
 
-  // ── 3. Restaurant tables ──────────────────────────────────────
+  //  3. Restaurant tables 
   console.log('Creating restaurant tables...')
   for (let i = 1; i <= 12; i++) {
     await prisma.restaurantTable.create({
@@ -132,7 +132,7 @@ async function main() {
     })
   }
 
-  // ── 4. Default manager account ────────────────────────────────
+  //  4. Default manager account
   console.log('Creating default manager account...')
   const password_hash = await bcrypt.hash('Manager2026!', 12)
   await prisma.user.upsert({
