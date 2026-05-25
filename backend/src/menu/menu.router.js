@@ -15,12 +15,12 @@ import { requireRole } from '../middleware/auth.middleware.js'
 
 export const menuRouter = Router()
 
-// ── Public routes (no auth — customer menu) ───────────────────
+//  Public routes (no auth — customer menu) 
 menuRouter.get('/categories',   getCategories)
 menuRouter.get('/items',        getItems)
 menuRouter.get('/items/:id',    getItemById)
 
-// ── Manager only routes ────────────
+// ── Manager only routes (require auth + manager role)
 menuRouter.post('/items',
   requireAuth, requireRole('manager'), createItem)
 
