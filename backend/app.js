@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { authRouter } from './src/auth/auth.router.js'
 import { menuRouter } from './src/menu/menu.router.js'
+import { ordersRouter } from './src/orders/orders.router.js'
 
 const app = express()
 
@@ -31,6 +32,7 @@ app.use(rateLimit({
 //  Routes 
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/menu', menuRouter)
+app.use('/api/v1/orders', ordersRouter)
 //  Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
