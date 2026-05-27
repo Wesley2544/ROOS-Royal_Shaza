@@ -5,6 +5,9 @@ import rateLimit from 'express-rate-limit'
 import { authRouter } from './src/auth/auth.router.js'
 import { menuRouter } from './src/menu/menu.router.js'
 import { ordersRouter } from './src/orders/orders.router.js'
+import { tablesRouter }        from './src/tables/tables.router.js'
+import { healthRouter }        from './src/health/health.router.js'
+import { notificationsRouter } from './src/notifications/notifications.router.js'
 
 const app = express()
 
@@ -33,6 +36,9 @@ app.use(rateLimit({
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/menu', menuRouter)
 app.use('/api/v1/orders', ordersRouter)
+app.use('/api/v1/tables', tablesRouter)
+app.use('/api/v1/notifications', notificationsRouter)
+app.use('/health', healthRouter)
 //  Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
