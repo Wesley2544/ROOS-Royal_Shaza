@@ -1,3 +1,4 @@
+import { getBroadcast } from '../socket/socket.server.js'
 import { z } from 'zod'
 import prisma from '../lib/prisma.js'
 
@@ -12,7 +13,7 @@ const orderSchema = z.object({
   special_notes: z.string().optional(),
 })
 
-//  State machine for order status transitions 
+//  State machine for order status transitions (only allow valid progressions to prevent accidental skips or regressions)
 const ALLOWED_TRANSITIONS = {
   new:       ['preparing'],
   preparing: ['ready'],
@@ -26,9 +27,9 @@ function notFound(item) {
   throw err
 }
 
-//  Place order 
+//  Place order (returns created order with items and table info)
 export async function createOrder(body) {
-  // 1. Validate input
+  // 1. Validate input data against schema and provide clear error messages for invalid input
   const parsed = orderSchema.safeParse(body)
   if (!parsed.success) {
     const err = new Error(parsed.error.errors[0].message)
@@ -38,13 +39,13 @@ export async function createOrder(body) {
 
   const { table_id, items, special_notes } = parsed.data
 
-  // 2. Confirm table exists
+  // 2. Confirm table exists and is in a state that can accept new orders (e.g., not occupied with an active order)
   const table = await prisma.restaurantTable.findUnique({
     where: { id: table_id }
   })
   if (!table) notFound('Table')
 
-  // 3. Fetch all ordered menu items in one query
+  // 3. Fetch all ordered menu items in one query to confirm they exist and are available, and to get their current prices for locking in the order total (preventing issues if prices change after order is placed but before it's processed)
   const menuItemIds = items.map(i => i.menu_item_id)
   const menuItems = await prisma.menuItem.findMany({
     where: {
@@ -54,7 +55,7 @@ export async function createOrder(body) {
     }
   })
 
-  // 4. Confirm every item exists and is available
+  // 4. Confirm every item exists and is available — if any are missing, return a clear error message to the client so they can adjust their order (e.g., "The following items are unavailable: X, Y, Z")
   if (menuItems.length !== menuItemIds.length) {
     const err = new Error(
       'One or more items are unavailable or do not exist'
@@ -63,7 +64,7 @@ export async function createOrder(body) {
     throw err
   }
 
-  // 5. Build order items with locked prices
+  // 5. Build order items with locked prices and calculate total amount (this ensures the order total is based on the prices at the time of ordering, even if menu prices change later)
   const menuItemMap = Object.fromEntries(menuItems.map(i => [i.id, i]))
   const orderItems  = items.map(item => {
     const menuItem = menuItemMap[item.menu_item_id]
@@ -96,7 +97,7 @@ export async function createOrder(body) {
       },
     })
 
-    // Write initial status log entry
+    // Write initial status log entry (this provides a complete history of status changes starting from the moment the order is created, which is important for auditing and debugging purposes)
     await tx.orderStatusLog.create({
       data: {
         order_id: newOrder.id,
@@ -104,7 +105,7 @@ export async function createOrder(body) {
       }
     })
 
-    // Update table status to ordering
+    // Update table status to ordering  (this ensures the table is marked as occupied and prevents new orders from being placed at the same table until the current order is served and the table is reset to free)
     await tx.restaurantTable.update({
       where: { id: table_id },
       data:  { status: 'ordering' },
@@ -113,7 +114,7 @@ export async function createOrder(body) {
     return newOrder
   })
 
-  // 7. Write notification record
+  // 7. Write notification record for customer (this allows the frontend to display a notification in the customer's order history or notifications section, confirming that their order was received and is being processed)
   await prisma.notification.create({
     data: {
       order_id: order.id,
@@ -121,17 +122,35 @@ export async function createOrder(body) {
       message:  'Your order has been received. The kitchen has been notified.',
     }
   })
+  // Broadcast new order to kitchen and waiters (this allows kitchen staff and waiters to see new orders in real-time without needing to refresh or poll for updates, improving efficiency and responsiveness in the order processing workflow)
+  try {
+    const broadcast = getBroadcast()
+    broadcast.newOrder({
+      orderId:     order.id,
+      tableId:     order.table_id,
+      tableNumber: order.table.table_number,
+      items:       order.items.map(i => ({
+        name: i.item_name,
+        qty:  i.quantity,
+      })),
+      notes:     order.special_notes,
+      createdAt: order.created_at,
+    })
+  } catch (e) {
+    // Don't fail the order if Socket broadcast fails
+    console.error('Broadcast error:', e.message)
+  }
 
   return order
 }
 
-//  Get orders (role-filtered) 
+//  Get orders (role-filtered) — kitchen sees all except served, waiters see all except served, managers see all
 export async function fetchOrders(role) {
   const where = role === 'kitchen'
     ? { status: { not: 'served' } }
     : role === 'waiter'
     ? { status: { not: 'served' } }
-    : {}  // manager sees all
+    : {}  // manager sees all 
 
   return prisma.order.findMany({
     where,
@@ -145,7 +164,7 @@ export async function fetchOrders(role) {
   })
 }
 
-//  Get single order with details 
+//  Get single order with details  (this is used for order details view for waiters and managers, and for customers to view their own order history)
 export async function fetchOrderById(id) {
   const order = await prisma.order.findUnique({
     where: { id },
@@ -161,7 +180,7 @@ export async function fetchOrderById(id) {
   return order
 }
 
-//  Update order status 
+//  Update order status (this is used by waiters and kitchen staff to update the status of an order as it progresses through the preparation and serving process, and by managers to update status if needed for any reason)
 export async function changeOrderStatus(orderId, newStatus, userId) {
   // 1. Validate new status value
   const validStatuses = ['new','preparing','ready','served']
@@ -173,11 +192,11 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
     throw err
   }
 
-  // 2. Fetch current order
+  // 2. Fetch current order to get current status and validate it exists — this is necessary to enforce valid state machine transitions and to ensure we have the current status for logging and notifications
   const order = await prisma.order.findUnique({ where: { id: orderId } })
   if (!order) notFound('Order')
 
-  // 3. Validate state machine transition
+  // 3. Validate state machine transition (this prevents invalid status changes that could cause confusion or errors in the order processing workflow, such as skipping directly from "new" to "ready" without going through "preparing", or trying to move back from "ready" to "preparing")
   const allowed = ALLOWED_TRANSITIONS[order.status]
   if (!allowed.includes(newStatus)) {
     const err = new Error(
@@ -187,7 +206,7 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
     throw err
   }
 
-  // 4. Update order + write status log in a transaction
+  // 4. Update order + write status log in a transaction (this ensures that the order status update and the corresponding log entry are atomic, preventing inconsistencies in the database if something goes wrong during the update process)
   const updated = await prisma.$transaction(async (tx) => {
     const updatedOrder = await tx.order.update({
       where: { id: orderId },
@@ -209,7 +228,7 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
       }
     })
 
-    // If served, reset table to free
+    // If served, reset table to free (this ensures that once an order is served, the table is marked as available again so that new customers can be seated and place orders at that table)
     if (newStatus === 'served') {
       await tx.restaurantTable.update({
         where: { id: updatedOrder.table.id },
@@ -220,7 +239,7 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
     return updatedOrder
   })
 
-  // 5. Write notification for customer
+  // 5. Write notification for customer (this allows the frontend to display real-time updates to the customer about the status of their order, improving the customer experience by keeping them informed about the progress of their order without needing to refresh or check manually)
   const notifMessages = {
     preparing: 'Your food is being prepared in the kitchen.',
     ready:     'Your food is on its way — expect it at your table in about 2 minutes!',
@@ -240,7 +259,7 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
   return updated
 }
 
-//  Order history (manager)
+//  Order history (manager) (this allows managers to view historical orders for reporting, auditing, and analysis purposes, and to filter by date range to focus on specific time periods)
 export async function fetchOrderHistory({ from, to, limit, offset }) {
   const where = {}
   if (from || to) {
