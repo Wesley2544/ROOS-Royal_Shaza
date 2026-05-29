@@ -137,7 +137,7 @@ export async function createOrder(body) {
       createdAt: order.created_at,
     })
   } catch (e) {
-    // Don't fail the order if Socket broadcast fails
+    // Don't fail the order if Socket broadcast fails — just log the error for debugging purposes (this ensures that even if there are temporary issues with the Socket server, customers can still place orders successfully, and the issue can be investigated and resolved without impacting the core functionality of the ordering system)
     console.error('Broadcast error:', e.message)
   }
 
@@ -182,7 +182,7 @@ export async function fetchOrderById(id) {
 
 //  Update order status (this is used by waiters and kitchen staff to update the status of an order as it progresses through the preparation and serving process, and by managers to update status if needed for any reason)
 export async function changeOrderStatus(orderId, newStatus, userId) {
-  // 1. Validate new status value
+  // 1. Validate new status value (this prevents invalid status values from being set, which could cause confusion and errors in the order processing workflow, and provides clear feedback to the client if they attempt to set an invalid status)
   const validStatuses = ['new','preparing','ready','served']
   if (!validStatuses.includes(newStatus)) {
     const err = new Error(
@@ -228,7 +228,7 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
       }
     })
 
-    // If served, reset table to free (this ensures that once an order is served, the table is marked as available again so that new customers can be seated and place orders at that table)
+    // If served, reset table to free.
     if (newStatus === 'served') {
       await tx.restaurantTable.update({
         where: { id: updatedOrder.table.id },
@@ -254,6 +254,31 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
         message:  notifMessages[newStatus],
       }
     })
+  }
+  // Broadcast status change to the right rooms (this allows the relevant parties to receive real-time updates about the status of the order without needing to refresh or poll for updates, improving efficiency and responsiveness in the order processing workflow)
+  try {
+    const broadcast = getBroadcast()
+    const tableNumber = updated.table.table_number
+
+    if (newStatus === 'served') {
+      broadcast.orderServed(tableNumber, {
+        orderId:     orderId,
+        tableId:     updated.table_id,
+        servedAt:    new Date().toISOString(),
+      })
+    } else {
+      const messages = {
+        preparing: 'Your food is being prepared in the kitchen.',
+        ready:     'Your food is on its way — about 2 minutes!',
+      }
+      broadcast.orderStatusUpdated(tableNumber, {
+        orderId:  orderId,
+        status:   newStatus,
+        message:  messages[newStatus] || '',
+      })
+    }
+  } catch (e) {
+    console.error('Broadcast error:', e.message)
   }
 
   return updated
