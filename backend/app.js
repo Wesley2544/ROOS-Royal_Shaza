@@ -49,14 +49,26 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' })
 })
 
-// Global error handler
+//  Global error handler 
 app.use((err, req, res, next) => {
-  console.error(err.stack)
-  const status = err.status || 500
-  const message = process.env.NODE_ENV === 'production'
-    ? 'Something went wrong'
-    : err.message
-  res.status(status).json({ error: message })
+  // Log full error in development only
+  if (process.env.NODE_ENV === 'development') {
+    console.error(`[${new Date().toISOString()}] ${err.stack}`)
+  } else {
+    console.error(`[${new Date().toISOString()}] ${err.message}`)
+  }
+
+  const status  = err.status || 500
+  const message = process.env.NODE_ENV === 'production' && status === 500
+    ? 'Something went wrong. Please try again.'
+    : err.message || 'Internal server error'
+
+  res.status(status).json({
+    error:     message,
+    status,
+    timestamp: new Date().toISOString(),
+    path:      req.path,
+  })
 })
 
 export default app
