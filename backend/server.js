@@ -14,7 +14,7 @@ const envSchema = z.object({
 
 const env = envSchema.safeParse(process.env)
 if (!env.success) {
-  console.error(' Missing required environment variables:')
+  console.error('Missing required environment variables:')
   console.error(env.error.format())
   process.exit(1)
 }
@@ -29,7 +29,7 @@ const httpServer = createServer(app)
 initSocket(httpServer)
 
 httpServer.listen(PORT, () => {
-  console.log(` Server running on port ${PORT}`)
-  console.log(` Environment: ${process.env.NODE_ENV}`)
-  console.log(` Socket.io ready`)
+  console.log(`Server running on port ${PORT}`)
+  console.log(`Environment: ${process.env.NODE_ENV}`)
+  console.log(`Socket.io ready`)
 })
