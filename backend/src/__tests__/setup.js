@@ -16,7 +16,7 @@ beforeAll(async () => {
   })
   const { port } = server.address()
   process.env.TEST_PORT = port
-  console.log(`\n🧪 Test server running on port ${port}\n`)
+  console.log(`\n Test server running on port ${port}\n`)
 })
 
 afterAll(async () => {
