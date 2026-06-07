@@ -76,9 +76,9 @@ describe('Auth API', () => {
 
     it('returns same error for wrong email and wrong password (prevents enumeration)', async () => {
       const r1 = await api().post('/api/v1/auth/login').send({
-        email:'ghost@royalshaza.ke', password:'pass'})
+        email:'ghost@royalshaza.ke', password:'wrongpassword'})
       const r2 = await api().post('/api/v1/auth/login').send({
-        email:'admin@royalshaza.ke', password:'wrongpass'})
+        email:'admin@royalshaza.ke', password:'wrongpassword'})
       expect(r1.body.error).toBe(r2.body.error)
     })
 
@@ -89,42 +89,37 @@ describe('Auth API', () => {
   })
 
   describe('GET /api/v1/auth/me', () => {
-    let token
-
-    beforeAll(async () => {
-      await new Promise(r=>setTimeout(r, 300)) // ensure unique timestamp for token
-      const res = await api().post('/api/v1/auth/login').send({
+    it('returns user info with valid token', async () => { 
+      // Get a fresh token directly inside the test - avoids rate limit issues
+      const loginRes = await api().post('/api/v1/auth/login').send({
         email:'admin@royalshaza.ke', 
-        password:'Manager2026!'})
-      token = res.body.token
-    })
+        password:'Manager2026!'
+      })
+      const  freshToken = loginRes.body.token
+      expect(freshToken).toBeTruthy()
 
-    it('returns user info with valid token', async () => {
       const res = await api().get('/api/v1/auth/me')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${freshToken}`)
       expect(res.status).toBe(200)
       expect(res.body.user.userId).toBeTruthy()
       expect(res.body.user.role).toBe('manager')
     })
-
     it('returns 401 with no token', async () => {
       const res = await api().get('/api/v1/auth/me')
       expect(res.status).toBe(401)
       expect(res.body.error).toBe('No token provided')
     })
-
     it('returns 401 with invalid token', async () => {
       const res = await api().get('/api/v1/auth/me')
         .set('Authorization', 'Bearer fakeinvalidtoken')
       expect(res.status).toBe(401)
       expect(res.body.error).toBe('Invalid or expired token')
-    })
 
+    })
     it('returns 401 with malformed authorization header', async () => {
       const res = await api().get('/api/v1/auth/me')
         .set('Authorization', 'NotBearer token')
       expect(res.status).toBe(401)
     })
   })
-
 })
