@@ -6,13 +6,13 @@ import prisma from '../lib/prisma.js'
 //  Validation schemas 
 const loginSchema = z.object({
   email:    z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 const registerSchema = z.object({
   name:     z.string().min(2, 'Name must be at least 2 characters').max(120),
   email:    z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   role:     z.enum(['kitchen', 'waiter', 'manager'], {
     errorMap: () => ({ message: 'Role must be kitchen, waiter, or manager' }),
   }),
@@ -32,7 +32,8 @@ export async function loginUser(email, password) {
   // 1. Validate input
   const parsed = loginSchema.safeParse({ email, password })
   if (!parsed.success) {
-    const err = new Error(parsed.error.errors[0].message)
+    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const err = new Error(message)
     err.status = 400
     throw err
   }
@@ -74,9 +75,10 @@ export async function registerUser({ name, email, password, role }) {
   // 1. Validate input
   const parsed = registerSchema.safeParse({ name, email, password, role })
   if (!parsed.success) {
-    const err = new Error(parsed.error.errors[0].message)
+    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const err = new Error(message)
     err.status = 400
-    throw err
+    throw err 
   }
 
   // 2. Check if email already exists
