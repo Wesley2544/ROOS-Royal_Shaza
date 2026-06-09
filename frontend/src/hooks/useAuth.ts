@@ -21,7 +21,7 @@ export function useAuth(requiredRole?: string | string[]) {
       return
     }
 
-    // Check role if required role(s) are specified
+    // Check role if required role(s) are specified 
     if (requiredRole) {
       const allowed = Array.isArray(requiredRole)
         ? requiredRole
