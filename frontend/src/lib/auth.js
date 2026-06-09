@@ -15,25 +15,25 @@ export function getUser() {
   }
 }
 
-// Get current token
+// Get current token from localStorage
 export function getToken() {
   if (typeof window === 'undefined') return null
   return localStorage.getItem('roos_token')
 }
 
-// Clear auth data on logout
+// Clear auth data on logout or auth error
 export function clearAuth() {
   localStorage.removeItem('roos_token')
   localStorage.removeItem('roos_user')
 }
 
-// Check if user has a specific role
+// Check if user has a specific role (e.g. 'kitchen', 'waiter', 'manager')
 export function hasRole(role) {
   const user = getUser()
   return user?.role === role
 }
 
-// Redirect path based on role after login
+// Redirect path based on role after login or when accessing protected routes
 export function getHomeByRole(role) {
   const paths = {
     kitchen: '/kitchen',

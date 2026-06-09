@@ -14,7 +14,7 @@ export function getSocket() {
   }
   return socket
 }
-// Connect to the socket server and handle events
+// Connect to the socket server and handle events (e.g. join room, connection status)
 export function connectSocket(room) {
   const s = getSocket()
   if (!s.connected) {
@@ -34,7 +34,7 @@ export function connectSocket(room) {
   })
   return s
 }
-// Disconnect from the socket server
+// Disconnect from the socket server and clean up event listeners
 export function disconnectSocket() {
   if (socket?.connected) {
     socket.disconnect()
