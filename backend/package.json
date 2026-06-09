@@ -5,6 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest --reporter=verbose",
+    "test:coverage": "vitest run --coverage",
     "dev": "nodemon server.js",
     "start": "node server.js",
     "seed": "node -r dotenv/config prisma/seed.js"
@@ -29,8 +32,11 @@
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
+    "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.0",
     "nodemon": "^3.1.14",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.8"
   }
 }

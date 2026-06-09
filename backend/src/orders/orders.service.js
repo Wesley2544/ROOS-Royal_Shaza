@@ -32,7 +32,8 @@ export async function createOrder(body) {
   // 1. Validate input data against schema and provide clear error messages for invalid input
   const parsed = orderSchema.safeParse(body)
   if (!parsed.success) {
-    const err = new Error(parsed.error.errors[0].message)
+    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const err = new Error(message)
     err.status = 400
     throw err
   }

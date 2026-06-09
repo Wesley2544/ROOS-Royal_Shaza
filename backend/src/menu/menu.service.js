@@ -37,7 +37,8 @@ export async function fetchCategories() {
 export async function addCategory(body) {
   const parsed = categorySchema.safeParse(body)
   if (!parsed.success) {
-    const err = new Error(parsed.error.errors[0].message)
+    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const err = new Error(message)
     err.status = 400
     throw err
   }
@@ -49,7 +50,8 @@ export async function editCategory(id, body) {
   if (!existing) notFound('Category')
   const parsed = categorySchema.partial().safeParse(body)
   if (!parsed.success) {
-    const err = new Error(parsed.error.errors[0].message)
+    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const err = new Error(message)
     err.status = 400
     throw err
   }
@@ -81,7 +83,8 @@ export async function fetchItemById(id) {
 export async function addItem(body) {
   const parsed = itemSchema.safeParse(body)
   if (!parsed.success) {
-    const err = new Error(parsed.error.errors[0].message)
+    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const err = new Error(message)
     err.status = 400
     throw err
   }
@@ -100,7 +103,8 @@ export async function editItem(id, body) {
   if (!existing) notFound('Menu item')
   const parsed = itemSchema.partial().safeParse(body)
   if (!parsed.success) {
-    const err = new Error(parsed.error.errors[0].message)
+    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const err = new Error(message)
     err.status = 400
     throw err
   }
