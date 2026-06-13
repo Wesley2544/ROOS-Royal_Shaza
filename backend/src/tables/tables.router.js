@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import prisma from '../lib/prisma.js'
 import {
   getAllTables,
   getTableByNumber,
@@ -9,20 +10,30 @@ import { requireRole } from '../middleware/auth.middleware.js'
 
 export const tablesRouter = Router()
 
-// Waiter and manager can see all tables and their statuses (e.g., for seating guests and managing reservations)
+// ── Public — must be defined BEFORE /:number to avoid conflict ─
+tablesRouter.get('/by-number/:number', async (req, res, next) => {
+  try {
+    const tableNumber = parseInt(req.params.number)
+    if (isNaN(tableNumber)) {
+      return res.status(400).json({ error: 'Invalid table number' })
+    }
+    const table = await prisma.restaurantTable.findUnique({
+      where:  { table_number: tableNumber },
+      select: { id: true, table_number: true, status: true },
+    })
+    if (!table) {
+      return res.status(404).json({ error: 'Table not found' })
+    }
+    res.json(table)
+  } catch (err) { next(err) }
+})
+
+// ── Auth-protected routes ──────────────────────────────────────
 tablesRouter.get('/',
-  requireAuth,
-  requireRole('waiter', 'manager'),
-  getAllTables)
+  requireAuth, requireRole('waiter', 'manager'), getAllTables)
 
-// Get a single table by table number (used for waiter to quickly find a table)
 tablesRouter.get('/:number',
-  requireAuth,
-  requireRole('waiter', 'manager'),
-  getTableByNumber)
+  requireAuth, requireRole('waiter', 'manager'), getTableByNumber)
 
-// Manually update a table status (e.g., set to 'occupied' when guests arrive without reservation)
 tablesRouter.patch('/:id/status',
-  requireAuth,
-  requireRole('waiter', 'manager'),
-  updateTableStatus)
+  requireAuth, requireRole('waiter', 'manager'), updateTableStatus)

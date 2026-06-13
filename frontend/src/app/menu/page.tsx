@@ -9,6 +9,7 @@ import ItemCard     from '@/components/menu/ItemCard'
 import CartBar      from '@/components/menu/CartBar'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
+import apiClient from '@/lib/apiClient'
 
 export default function MenuPage() {
   const router       = useRouter()
@@ -42,6 +43,18 @@ export default function MenuPage() {
       disconnectSocket()
     }
   }, [tableNumber])
+  useEffect(() => {
+    async function fetchTableId(){
+      try{
+        const res = await apiClient.get(`/tables/by-number/${tableNumber}`)
+        sessionStorage.setItem('table_id', res.data.id)
+      } catch (err) {
+        console.error('Could not fetch table ID:', err)
+      }
+    }
+    fetchTableId()
+  }, [tableNumber])
+  
 
   // Store table number for order placement
   useEffect(() => {
