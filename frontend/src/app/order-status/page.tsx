@@ -213,24 +213,22 @@ export default function OrderStatusPage() {
               </span>
             </div>
             {[...order.notifications].reverse().map(notif => (
-              <div
-                key={notif.id}
-                className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0"
-              >
-                <span className="text-base mt-0.5">
-                  {notif.type === 'received'  ? '🔔' :
-                   notif.type === 'preparing' ? '👨‍🍳' :
-                   notif.type === 'ready'     ? '🍽'  : '✅'}
-                </span>
-                <div>
-                  <div className="text-sm text-gray-700">{notif.message}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    {new Date(notif.created_at).toLocaleTimeString([], {
-                      hour: '2-digit', minute: '2-digit'
-                    })}
+                <div
+                    key={notif.id}
+                    className="flex items-start gap-3 px-4 py-3 border-b boarder-gray-100 last:border-0"
+                >
+                  {/* Single neutral grey icon for all notifications types */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <div>
+                    <div className="text-sm text-gray-700">{notif.message}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                    </div>
                   </div>
                 </div>
-              </div>
             ))}
           </div>
         )}
