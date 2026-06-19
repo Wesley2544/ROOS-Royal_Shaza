@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getUser, clearAuth, getHomeByRole } from '@/lib/auth'
 
@@ -7,12 +7,17 @@ interface User {
   userId: string
   role:   'kitchen' | 'waiter' | 'manager'
 }
-// Hook to manage authentication and role-based access control
+
 export function useAuth(requiredRole?: string | string[]) {
   const router  = useRouter()
   const [user,    setUser]    = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-// On mount, check if user is authenticated and has the required role (if any)
+
+  // Stringify the role so the dependency never changes reference on re-render
+  const requiredRoleKey = Array.isArray(requiredRole)
+    ? requiredRole.join(',')
+    : requiredRole || ''
+
   useEffect(() => {
     const currentUser = getUser()
 
@@ -21,20 +26,17 @@ export function useAuth(requiredRole?: string | string[]) {
       return
     }
 
-    // Check role if required role(s) are specified 
-    if (requiredRole) {
-      const allowed = Array.isArray(requiredRole)
-        ? requiredRole
-        : [requiredRole]
+    if (requiredRoleKey) {
+      const allowed = requiredRoleKey.split(',')
       if (!allowed.includes(currentUser.role)) {
         router.replace(getHomeByRole(currentUser.role))
         return
       }
     }
-// User is authenticated and has the required role (if any), set user state
+
     setUser(currentUser)
     setLoading(false)
-  }, [router, requiredRole])
+  }, [router, requiredRoleKey]) // ← string, not array — stable reference
 
   function logout() {
     clearAuth()
