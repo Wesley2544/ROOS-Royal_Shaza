@@ -15,6 +15,18 @@ import { requireRole } from '../middleware/auth.middleware.js'
 
 export const menuRouter = Router()
 
+menuRouter.get('/items/all',
+  requireAuth, requireRole('manager'), async (req, res, next) => {
+    try {
+      const items = await import('../lib/prisma.js').then(m => m.default.menuItem.findMany({
+        where: { is_deleted: false },
+        include: { category: { select: { id: true, name: true } } },
+        orderBy: { name: 'asc' },
+      }))
+      res.json(items)
+    } catch (err) { next(err) }
+  })
+  
 //  Public routes (no auth — customer menu) 
 menuRouter.get('/categories',   getCategories)
 menuRouter.get('/items',        getItems)
