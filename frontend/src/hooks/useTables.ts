@@ -17,6 +17,6 @@ export function useTables() {
       return res.data
     },
     staleTime:       0,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   })
 }
