@@ -48,7 +48,8 @@ export default function WaiterPage() {
   if (isLoading) return <LoadingSpinner message="Loading orders…" />
   if (error)      return <ErrorMessage message="Could not load orders." onRetry={() => window.location.reload()} />
 
-  const activeOrders = orders?.filter(o => o.status !== 'served') || []
+  const activeOrders = (orders?.filter(o => o.status !== 'served') || [])
+  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   const filtered = activeTab === 'all'
     ? activeOrders
     : activeOrders.filter(o => o.status === activeTab)

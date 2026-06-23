@@ -55,7 +55,8 @@ export default function KitchenPage() {
     updateStatus.mutate({ orderId, status: nextStatus })
   }
 
-  const activeOrders = orders?.filter(o => o.status !== 'served') || []
+  const activeOrders = (orders?.filter(o => o.status !== 'served') || [])
+  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   const newCount       = activeOrders.filter(o => o.status === 'new').length
   const preparingCount  = activeOrders.filter(o => o.status === 'preparing').length
   const readyCount      = activeOrders.filter(o => o.status === 'ready').length
