@@ -8,6 +8,7 @@ import { ordersRouter } from './src/orders/orders.router.js'
 import { tablesRouter }        from './src/tables/tables.router.js'
 import { healthRouter }        from './src/health/health.router.js'
 import { notificationsRouter } from './src/notifications/notifications.router.js'
+import { reportsRouter } from './src/reports/reports.router.js'
 
 const app = express()
 
@@ -39,6 +40,7 @@ app.use('/api/v1/orders', ordersRouter)
 app.use('/api/v1/tables', tablesRouter)
 app.use('/api/v1/notifications', notificationsRouter)
 app.use('/health', healthRouter)
+app.use('/api/v1/reports', reportsRouter)
 //  Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
@@ -51,14 +53,18 @@ app.use((req, res) => {
 
 //  Global error handler 
 app.use((err, req, res, next) => {
-  // Log full error in development only
   if (process.env.NODE_ENV === 'development') {
     console.error(`[${new Date().toISOString()}] ${err.stack}`)
   } else {
     console.error(`[${new Date().toISOString()}] ${err.message}`)
   }
 
-  const status  = err.status || 500
+  // Ensure status is always a valid HTTP status code 
+  let status = err.status || err.statusCode || 500
+  if (typeof status !== 'number' || status < 100 || status > 599) {
+    status = 500
+  }
+
   const message = process.env.NODE_ENV === 'production' && status === 500
     ? 'Something went wrong. Please try again.'
     : err.message || 'Internal server error'
@@ -70,5 +76,4 @@ app.use((err, req, res, next) => {
     path:      req.path,
   })
 })
-
 export default app
