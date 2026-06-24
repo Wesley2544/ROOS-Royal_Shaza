@@ -7,5 +7,8 @@ export default defineConfig({
     timeout:     15000,
     setupFiles:  ['./src/__tests__/setup.js'],
     sequence:    { sequential: true },
+    env: {
+      NODE_ENV: 'test',
+    },
   },
 })

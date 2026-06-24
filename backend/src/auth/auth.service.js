@@ -3,117 +3,117 @@ import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import prisma from '../lib/prisma.js'
 
-//  Validation schemas 
+// ── Validation schemas ─────────────────────────────────────────
+const usernameSchema = z.string()
+  .min(3, 'Username must be at least 3 characters')
+  .max(30, 'Username must be at most 30 characters')
+  .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
+
 const loginSchema = z.object({
-  email:    z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  username: usernameSchema,
+  role:     z.enum(['kitchen', 'waiter', 'manager']),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
 const registerSchema = z.object({
   name:     z.string().min(2, 'Name must be at least 2 characters').max(120),
-  email:    z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  username: usernameSchema,
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   role:     z.enum(['kitchen', 'waiter', 'manager'], {
     errorMap: () => ({ message: 'Role must be kitchen, waiter, or manager' }),
   }),
 })
 
-//  Token helper
+// ── Token helper ───────────────────────────────────────────────
 function signToken(user) {
   return jwt.sign(
     { userId: user.id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
   )
 }
 
-// Login
-export async function loginUser(email, password) {
-  // 1. Validate input
-  const parsed = loginSchema.safeParse({ email, password })
+// ── Login ──────────────────────────────────────────────────────
+export async function loginUser(username, password, role) {
+  const parsed = loginSchema.safeParse({ username, password, role })
   if (!parsed.success) {
-    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const message = parsed.error.errors?.[0]?.message || 'Invalid request data'
     const err = new Error(message)
     err.status = 400
     throw err
   }
 
-  // 2. Find user — use generic error to prevent email enumeration
+  // Find user — must match username AND role (same username could theoretically
+  // exist across roles since uniqueness is system-wide, but role check adds safety)
   const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase().trim() },
+    where: { username: username.trim() },
   })
 
-  // 3. Compare password (always run bcrypt even if user not found)
+  // Always run bcrypt even if user not found — prevents timing attacks
   const dummyHash = '$2a$12$dummyhashtopreventtimingattacks000000000000000000000000'
   const isValid = await bcrypt.compare(
     password,
     user ? user.password_hash : dummyHash
   )
 
-  if (!user || !isValid || !user.is_active) {
-    const err = new Error('Invalid email or password')
+  if (!user || !isValid || !user.is_active || user.role !== role) {
+    const err = new Error('Invalid username, role, or password')
     err.status = 401
     throw err
   }
 
-  // 4. Sign token
   const token = signToken(user)
 
   return {
     token,
     user: {
-      id:    user.id,
-      name:  user.name,
-      email: user.email,
-      role:  user.role,
+      id:       user.id,
+      name:     user.name,
+      username: user.username,
+      role:     user.role,
     },
   }
 }
 
-//  Register new user (manager only) 
-export async function registerUser({ name, email, password, role }) {
-  // 1. Validate input
-  const parsed = registerSchema.safeParse({ name, email, password, role })
+// ── Register ───────────────────────────────────────────────────
+export async function registerUser({ name, username, password, role }) {
+  const parsed = registerSchema.safeParse({ name, username, password, role })
   if (!parsed.success) {
-    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const message = parsed.error.errors?.[0]?.message || 'Invalid request data'
     const err = new Error(message)
     err.status = 400
-    throw err 
+    throw err
   }
 
-  // 2. Check if email already exists
   const existing = await prisma.user.findUnique({
-    where: { email: email.toLowerCase().trim() },
+    where: { username: username.trim() },
   })
   if (existing) {
-    const err = new Error('An account with this email already exists')
+    const err = new Error('This username is already taken')
     err.status = 409
     throw err
   }
 
-  // 3. Hash password — cost factor 12 (production standard)
   const password_hash = await bcrypt.hash(password, 12)
 
-  // 4. Create user
   const user = await prisma.user.create({
     data: {
-      name:          name.trim(),
-      email:         email.toLowerCase().trim(),
+      name:     name.trim(),
+      username: username.trim(),
       password_hash,
       role,
     },
   })
 
-  // 5. Sign token
   const token = signToken(user)
 
   return {
     token,
     user: {
-      id:    user.id,
-      name:  user.name,
-      email: user.email,
-      role:  user.role,
+      id:       user.id,
+      name:     user.name,
+      username: user.username,
+      role:     user.role,
     },
   }
 }

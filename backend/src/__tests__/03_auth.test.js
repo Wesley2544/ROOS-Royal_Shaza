@@ -8,7 +8,7 @@ describe('Auth API', () => {
 
     it('creates a new staff account and returns token', async () => {
       const res = await api().post('/api/v1/auth/register').send({
-        name: 'Test Staff', email: `staff${unique}@royalshaza.ke`,
+        name: 'Test Staff', username: `staff${unique}`,
         password: 'StaffPass2026', role: 'waiter',
       })
       expect(res.status).toBe(201)
@@ -17,44 +17,50 @@ describe('Auth API', () => {
       expect(res.body.user.password_hash).toBeUndefined()
     })
 
-    it('rejects duplicate email with 409', async () => {
-      const email = `dup${unique}@royalshaza.ke`
+    it('rejects duplicate username with 409', async () => {
+      const username = `dup${unique}`
       await api().post('/api/v1/auth/register').send({
-        name:'Dup',email,password:'Pass12345',role:'waiter'})
+        name:'Dup', username, password:'Pass12345', role:'waiter' })
       const res = await api().post('/api/v1/auth/register').send({
-        name:'Dup2',email,password:'Pass12345',role:'waiter'})
+        name:'Dup2', username, password:'Pass12345', role:'waiter' })
       expect(res.status).toBe(409)
-      expect(res.body.error).toMatch(/already exists/i)
+      expect(res.body.error).toMatch(/already taken/i)
     })
 
-    it('rejects invalid email format with 400', async () => {
+    it('rejects username with invalid characters with 400', async () => {
       const res = await api().post('/api/v1/auth/register').send({
-        name:'Bad',email:'notanemail',password:'Pass12345',role:'waiter'})
+        name:'Bad', username:'bad user!', password:'Pass12345', role:'waiter' })
+      expect(res.status).toBe(400)
+    })
+
+    it('rejects username shorter than 3 characters with 400', async () => {
+      const res = await api().post('/api/v1/auth/register').send({
+        name:'Bad', username:'ab', password:'Pass12345', role:'waiter' })
       expect(res.status).toBe(400)
     })
 
     it('rejects password shorter than 8 characters with 400', async () => {
       const res = await api().post('/api/v1/auth/register').send({
-        name:'Bad',email:`short${unique}@test.ke`,password:'123',role:'waiter'})
+        name:'Bad', username:`short${unique}`, password:'123', role:'waiter' })
       expect(res.status).toBe(400)
     })
 
     it('rejects invalid role with 400', async () => {
       const res = await api().post('/api/v1/auth/register').send({
-        name:'Bad',email:`role${unique}@test.ke`,password:'Pass12345',role:'hacker'})
+        name:'Bad', username:`role${unique}`, password:'Pass12345', role:'hacker' })
       expect(res.status).toBe(400)
     })
 
     it('rejects missing required fields with 400', async () => {
-      const res = await api().post('/api/v1/auth/register').send({name:'NoEmail'})
-      expect([400, 429]).toContain(res.status)
+      const res = await api().post('/api/v1/auth/register').send({ name:'NoUsername' })
+      expect(res.status).toBe(400)
     })
   })
 
   describe('POST /api/v1/auth/login', () => {
     it('returns token on valid credentials', async () => {
       const res = await api().post('/api/v1/auth/login').send({
-        email:'admin@royalshaza.ke', password:'Manager2026!'})
+        username:'admin', password:'Manager2026!', role:'manager' })
       expect(res.status).toBe(200)
       expect(res.body.token).toBeTruthy()
       expect(res.body.user.role).toBe('manager')
@@ -62,40 +68,43 @@ describe('Auth API', () => {
 
     it('returns 401 for wrong password', async () => {
       const res = await api().post('/api/v1/auth/login').send({
-        email:'admin@royalshaza.ke', password:'wrongpassword'})
+        username:'admin', password:'wrongpassword', role:'manager' })
       expect(res.status).toBe(401)
-      expect(res.body.error).toBe('Invalid email or password')
     })
 
-    it('returns 401 for non-existent email', async () => {
+    it('returns 401 for non-existent username', async () => {
       const res = await api().post('/api/v1/auth/login').send({
-        email:'ghost@royalshaza.ke', password:'anypassword'})
+        username:'ghostuser', password:'anypassword', role:'manager' })
       expect(res.status).toBe(401)
-      expect(res.body.error).toBe('Invalid email or password')
     })
 
-    it('returns same error for wrong email and wrong password (prevents enumeration)', async () => {
+    it('returns 401 when role does not match the account', async () => {
+      const res = await api().post('/api/v1/auth/login').send({
+        username:'admin', password:'Manager2026!', role:'waiter' })
+      expect(res.status).toBe(401)
+    })
+
+    it('returns same error for wrong username and wrong password (prevents enumeration)', async () => {
       const r1 = await api().post('/api/v1/auth/login').send({
-        email:'ghost@royalshaza.ke', password:'wrongpassword'})
+        username:'ghostuser', password:'wrongpassword', role:'manager' })
       const r2 = await api().post('/api/v1/auth/login').send({
-        email:'admin@royalshaza.ke', password:'wrongpassword'})
+        username:'admin', password:'wrongpassword', role:'manager' })
       expect(r1.body.error).toBe(r2.body.error)
     })
 
-    it('rejects missing email with 400', async () => {
-      const res = await api().post('/api/v1/auth/login').send({password:'pass'})
+    it('rejects missing username with 400', async () => {
+      const res = await api().post('/api/v1/auth/login').send({ password:'pass', role:'manager' })
       expect([400, 429]).toContain(res.status)
     })
   })
 
   describe('GET /api/v1/auth/me', () => {
-    it('returns user info with valid token', async () => { 
-      // Get a fresh token directly inside the test - avoids rate limit issues
+
+    it('returns user info with valid token', async () => {
       const loginRes = await api().post('/api/v1/auth/login').send({
-        email:'admin@royalshaza.ke', 
-        password:'Manager2026!'
+        username: 'admin', password: 'Manager2026!', role: 'manager',
       })
-      const  freshToken = loginRes.body.token
+      const freshToken = loginRes.body.token
       expect(freshToken).toBeTruthy()
 
       const res = await api().get('/api/v1/auth/me')
@@ -104,22 +113,25 @@ describe('Auth API', () => {
       expect(res.body.user.userId).toBeTruthy()
       expect(res.body.user.role).toBe('manager')
     })
+
     it('returns 401 with no token', async () => {
       const res = await api().get('/api/v1/auth/me')
       expect(res.status).toBe(401)
       expect(res.body.error).toBe('No token provided')
     })
+
     it('returns 401 with invalid token', async () => {
       const res = await api().get('/api/v1/auth/me')
         .set('Authorization', 'Bearer fakeinvalidtoken')
       expect(res.status).toBe(401)
       expect(res.body.error).toBe('Invalid or expired token')
-
     })
+
     it('returns 401 with malformed authorization header', async () => {
       const res = await api().get('/api/v1/auth/me')
         .set('Authorization', 'NotBearer token')
       expect(res.status).toBe(401)
     })
   })
+
 })

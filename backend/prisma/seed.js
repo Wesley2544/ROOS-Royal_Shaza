@@ -136,25 +136,25 @@ async function main() {
   console.log('Creating default manager account...')
   const password_hash = await bcrypt.hash('Manager2026!', 12)
   await prisma.user.upsert({
-    where:  { email: 'admin@royalshaza.ke' },
+    where:  { username: 'admin' },
     update: {},
     create: {
       name:          'Hotel Manager',
-      email:         'admin@royalshaza.ke',
+      username:         'admin',
       password_hash,
       role:          'manager',
     },
   })
 
   console.log('')
-  console.log(' Seeding complete!')
+  console.log('   Seeding complete!')
   console.log('   4 menu categories')
   console.log('   11 menu items')
   console.log('   12 restaurant tables')
   console.log('   1 default manager account')
   console.log('')
   console.log(' Default manager login:')
-  console.log('   Email:    admin@royalshaza.ke')
+  console.log('   username:    admin')
   console.log('   Password: Manager2026!')
 }
 
