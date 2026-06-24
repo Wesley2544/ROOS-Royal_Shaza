@@ -4,11 +4,62 @@ import { useAuth } from '@/hooks/useAuth'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 const NAV_ITEMS = [
-  { href: '/manager',         label: 'Dashboard', icon: '📊' },
-  { href: '/manager/menu',    label: 'Menu',      icon: '🍽' },
-  { href: '/manager/orders',  label: 'Orders',    icon: '🛒' },
-  { href: '/manager/staff',   label: 'Staff',     icon: '👥' },
-  { href: '/manager/reports', label: 'Reports',   icon: '📈' },
+  {
+    href: '/manager',
+    label: 'Dashboard',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="9" rx="1"/>
+        <rect x="14" y="3" width="7" height="5" rx="1"/>
+        <rect x="14" y="12" width="7" height="9" rx="1"/>
+        <rect x="3" y="16" width="7" height="5" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/manager/menu',
+    label: 'Menu',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 2v7c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2V2"/>
+        <path d="M7 2v20"/>
+        <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/manager/orders',
+    label: 'Orders',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2h12l1 5H5l1-5Z"/>
+        <path d="M4 7h16l-1.4 12.6a2 2 0 0 1-2 1.4H7.4a2 2 0 0 1-2-1.4L4 7Z"/>
+        <path d="M9 11v4M15 11v4"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/manager/staff',
+    label: 'Staff',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/>
+        <circle cx="10" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/manager/reports',
+    label: 'Reports',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3v18h18"/>
+        <path d="M18.7 8 13 13.7l-3-3L7 13.5"/>
+      </svg>
+    ),
+  },
 ]
 
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
@@ -41,7 +92,9 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
                     : 'text-gray-500 hover:bg-white/60'
                   }`}
               >
-                <span className="text-sm">{item.icon}</span>
+                <span className={active ? 'text-[#185FA5]' : 'text-gray-400'}>
+                  {item.icon}
+                </span>
                 <span>{item.label}</span>
               </button>
             )
