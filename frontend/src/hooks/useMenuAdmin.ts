@@ -1,11 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/apiClient'
+import { MenuItem } from './useMenu'
+
+function invalidateMenu(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['menu-items'] })
+  qc.invalidateQueries({ queryKey: ['menu-items-all'] })
+  qc.invalidateQueries({ queryKey: ['categories'] })
+}
 
 export function useCreateItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: any) => (await apiClient.post('/menu/items', data)).data,
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['menu-items'] }),
+    onSuccess:  () => invalidateMenu(qc),
   })
 }
 
@@ -14,16 +21,29 @@ export function useUpdateItem() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) =>
       (await apiClient.put(`/menu/items/${id}`, data)).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['menu-items'] }),
+    onSuccess: () => invalidateMenu(qc),
   })
 }
 
+// Optimistic — flips the switch instantly, reverts only if the server rejects it
 export function useToggleAvailability() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, is_available }: { id: string; is_available: boolean }) =>
       (await apiClient.patch(`/menu/items/${id}/availability`, { is_available })).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['menu-items'] }),
+
+    onMutate: async ({ id, is_available }) => {
+      await qc.cancelQueries({ queryKey: ['menu-items-all'] })
+      const previous = qc.getQueryData<MenuItem[]>(['menu-items-all'])
+      qc.setQueryData<MenuItem[]>(['menu-items-all'], old =>
+        old?.map(item => item.id === id ? { ...item, is_available } : item)
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(['menu-items-all'], context.previous)
+    },
+    onSettled: () => invalidateMenu(qc),
   })
 }
 
@@ -31,6 +51,6 @@ export function useDeleteItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => (await apiClient.delete(`/menu/items/${id}`)).data,
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['menu-items'] }),
+    onSuccess:  () => invalidateMenu(qc),
   })
 }

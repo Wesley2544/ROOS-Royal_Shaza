@@ -9,6 +9,7 @@ import { tablesRouter }        from './src/tables/tables.router.js'
 import { healthRouter }        from './src/health/health.router.js'
 import { notificationsRouter } from './src/notifications/notifications.router.js'
 import { reportsRouter } from './src/reports/reports.router.js'
+import { usersRouter } from './src/users/users.router.js'
 
 const app = express()
 
@@ -27,7 +28,7 @@ app.use(express.json({ limit: '10kb' })) // limit body size
 // Global rate limiter (applies to all routes)
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,                  // 100 requests per IP per window
+  max: 500,                  // 500 requests per IP per window
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
@@ -41,6 +42,7 @@ app.use('/api/v1/tables', tablesRouter)
 app.use('/api/v1/notifications', notificationsRouter)
 app.use('/health', healthRouter)
 app.use('/api/v1/reports', reportsRouter)
+app.use('/api/v1/users', usersRouter)
 //  Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

@@ -6,7 +6,7 @@ export default function ErrorMessage({ message = 'Something went wrong.', onRetr
       {onRetry && (
         <button
           onClick={onRetry}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-[#FDC700] text-[#0A0A0A] text-sm font-bold rounded-xl hover:brightness-95"
         >
           Try again
         </button>

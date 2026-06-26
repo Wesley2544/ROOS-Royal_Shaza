@@ -43,17 +43,17 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-[#F5F5F5] flex flex-col items-center justify-center px-4">
       <div className="mb-8 text-center">
-        <div className="text-2xl font-bold text-[#1A3C5E]">Royal Shaza Suites</div>
+        <div className="text-2xl font-extrabold text-[#0A0A0A]">Royal Shaza Suites</div>
         <div className="text-sm text-gray-500 mt-1">Create a staff account</div>
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h1 className="text-lg font-semibold text-gray-900 mb-6">Sign up</h1>
+      <div className="w-full max-w-sm bg-[#FFFFFF] border border-[#E5E5E5] rounded-[18px] shadow-sm p-8">
+        <h1 className="text-lg font-bold text-[#0A0A0A] mb-6">Sign up</h1>
 
         {error && (
-          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="mb-4 px-4 py-3 bg-red-200 border border-red-300 rounded-xl text-sm text-red-800 font-medium">
             {error}
           </div>
         )}
@@ -64,7 +64,7 @@ export default function RegisterPage() {
             <input
               type="text" value={name} onChange={e => setName(e.target.value)} required
               placeholder="e.g. Grace Njeri"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
             />
           </div>
 
@@ -73,7 +73,7 @@ export default function RegisterPage() {
             <input
               type="text" value={username} onChange={e => setUsername(e.target.value)} required
               placeholder="letters, numbers, underscore only"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
             />
           </div>
 
@@ -81,11 +81,9 @@ export default function RegisterPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">I am signing up as</label>
             <select
               value={role} onChange={e => setRole(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
             >
-              {ROLES.map(r => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
+              {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
 
@@ -94,7 +92,7 @@ export default function RegisterPage() {
             <input
               type="password" value={password} onChange={e => setPassword(e.target.value)} required
               placeholder="At least 8 characters"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
             />
           </div>
 
@@ -102,13 +100,13 @@ export default function RegisterPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
             <input
               type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
             />
           </div>
 
           <button
             type="submit" disabled={loading}
-            className="w-full py-2.5 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#15324f] disabled:opacity-60 transition-colors mt-2"
+            className="w-full py-2.5 bg-[#FDC700] text-[#0A0A0A] text-sm font-bold rounded-xl hover:brightness-95 disabled:opacity-60 transition mt-2"
           >
             {loading ? 'Creating account…' : 'Create account'}
           </button>
@@ -116,7 +114,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-xs text-gray-400 mt-4">
           Already have an account?{' '}
-          <button onClick={() => router.push('/login')} className="text-[#185FA5] font-semibold">
+          <button onClick={() => router.push('/login')} className="text-[#0A0A0A] font-bold underline">
             Sign in
           </button>
         </p>

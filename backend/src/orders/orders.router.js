@@ -11,22 +11,18 @@ import { requireRole } from '../middleware/auth.middleware.js'
 
 export const ordersRouter = Router()
 
-// Public routes 
-ordersRouter.post('/',     placeOrder)
-ordersRouter.get('/:id',   getOrderById)
+// ── Public ─────────────────────────────────────────────────────
+ordersRouter.post('/', placeOrder)
 
-// Staff routes 
+// ── Staff routes — specific paths BEFORE the /:id catch-all ────
+ordersRouter.get('/history',
+  requireAuth, requireRole('manager'), getOrderHistory)
+
 ordersRouter.get('/',
-  requireAuth,
-  requireRole('kitchen', 'waiter', 'manager'),
-  getOrders)
+  requireAuth, requireRole('kitchen', 'waiter', 'manager'), getOrders)
 
 ordersRouter.patch('/:id/status',
-  requireAuth,
-  requireRole('kitchen', 'waiter', 'manager'),
-  updateOrderStatus)
+  requireAuth, requireRole('kitchen', 'waiter', 'manager'), updateOrderStatus)
 
-ordersRouter.get('/history',
-  requireAuth,
-  requireRole('manager'),
-  getOrderHistory)
+// ── Public — must come AFTER /history, or /history gets eaten ──
+ordersRouter.get('/:id', getOrderById)

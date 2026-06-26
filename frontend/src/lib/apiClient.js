@@ -6,26 +6,21 @@ const apiClient = axios.create({
   timeout: 10000,
 })
 
-// Automatically attach JWT token to every request if it exists
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('roos_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    const token = sessionStorage.getItem('roos_token')
+    if (token) config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Handle auth errors globally (401 Unauthorized)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('roos_token')
-        localStorage.removeItem('roos_user')
-        // Only redirect if not already on login page to avoid infinite loop
+        sessionStorage.removeItem('roos_token')
+        sessionStorage.removeItem('roos_user')
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login'
         }

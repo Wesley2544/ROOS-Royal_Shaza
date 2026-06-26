@@ -4,12 +4,12 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useCategories, useMenuItems } from '@/hooks/useMenu'
 import { useCart } from '@/hooks/useCart'
 import { connectSocket, disconnectSocket } from '@/lib/socket'
+import apiClient from '@/lib/apiClient'
 import CategoryTabs from '@/components/menu/CategoryTabs'
 import ItemCard     from '@/components/menu/ItemCard'
 import CartBar      from '@/components/menu/CartBar'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
-import apiClient from '@/lib/apiClient'
 
 export default function MenuPage() {
   const router       = useRouter()
@@ -22,30 +22,28 @@ export default function MenuPage() {
 
   const cart = useCart()
 
-  // Set first category as active once loaded
   useEffect(() => {
     if (categories && categories.length > 0 && !activeCategoryId) {
       setActiveCategoryId(categories[0].id)
     }
   }, [categories, activeCategoryId])
 
-  // Connect to socket room for this table
   useEffect(() => {
     const socket = connectSocket(`table-${tableNumber}`)
-
-    socket.on('menu_updated', () => {
-      // Refetch menu when manager updates availability
-      window.location.reload()
-    })
-
+    socket.on('menu_updated', () => { window.location.reload() })
     return () => {
       socket.off('menu_updated')
       disconnectSocket()
     }
   }, [tableNumber])
+
   useEffect(() => {
-    async function fetchTableId(){
-      try{
+    sessionStorage.setItem('table_number', tableNumber)
+  }, [tableNumber])
+
+  useEffect(() => {
+    async function fetchTableId() {
+      try {
         const res = await apiClient.get(`/tables/by-number/${tableNumber}`)
         sessionStorage.setItem('table_id', res.data.id)
       } catch (err) {
@@ -54,15 +52,8 @@ export default function MenuPage() {
     }
     fetchTableId()
   }, [tableNumber])
-  
-
-  // Store table number for order placement
-  useEffect(() => {
-    sessionStorage.setItem('table_number', tableNumber)
-  }, [tableNumber])
 
   function handleViewCart() {
-    // Save cart to sessionStorage for cart page
     sessionStorage.setItem('cart', JSON.stringify({
       items:        cart.items,
       specialNotes: cart.specialNotes,
@@ -75,19 +66,17 @@ export default function MenuPage() {
   if (catsError)   return <ErrorMessage message="Could not load the menu. Please try again." />
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#F5F9FE] border-b border-[#E0EAF5] px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F5F5F5] pb-24">
+      <div className="sticky top-0 z-20 bg-white border-b border-[#E5E5E5] px-4 py-3 flex items-center justify-between">
         <div>
-          <div className="text-base font-bold text-[#1A3C5E]">Royal Shaza Suites</div>
+          <div className="text-base font-extrabold text-[#0A0A0A]">Royal Shaza Suites</div>
           <div className="text-xs text-gray-500">Table {tableNumber} · Restaurant</div>
         </div>
-        <span className="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
+        <span className="bg-green-200 text-green-800 text-xs font-bold px-3 py-1 rounded-full">
           Open
         </span>
       </div>
 
-      {/* Category tabs */}
       {categories && (
         <CategoryTabs
           categories={categories}
@@ -96,8 +85,7 @@ export default function MenuPage() {
         />
       )}
 
-      {/* Menu items */}
-      <div className="bg-white mt-2 rounded-xl mx-2 shadow-sm overflow-hidden">
+      <div className="bg-white mt-2 rounded-[18px] mx-2 shadow-sm border border-[#E5E5E5] overflow-hidden">
         {itemsLoading ? (
           <LoadingSpinner message="Loading items…" />
         ) : items && items.length > 0 ? (
@@ -117,10 +105,9 @@ export default function MenuPage() {
         )}
       </div>
 
-      {/* Special notes */}
       {cart.totalItems > 0 && (
-        <div className="mx-2 mt-3 bg-white rounded-xl p-4 shadow-sm">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+        <div className="mx-2 mt-3 bg-white rounded-[18px] border border-[#E5E5E5] p-4 shadow-sm">
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
             Special requests
           </label>
           <textarea
@@ -128,12 +115,11 @@ export default function MenuPage() {
             value={cart.specialNotes}
             onChange={e => cart.setSpecialNotes(e.target.value)}
             placeholder="Any dietary requirements or special requests…"
-            className="w-full text-sm text-gray-900 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full text-sm text-[#0A0A0A] border border-[#E5E5E5] rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
           />
         </div>
       )}
 
-      {/* Sticky cart bar */}
       <CartBar
         totalItems={cart.totalItems}
         totalAmount={cart.totalAmount}
