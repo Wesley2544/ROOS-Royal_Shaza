@@ -3,3 +3,5 @@ node_modules
 .env
 
 /src/generated/prisma
+# Test coverage output — don't commit this
+coverage/
