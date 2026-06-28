@@ -12,6 +12,7 @@ import {
 } from './menu.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { requireRole } from '../middleware/auth.middleware.js'
+import { uploadMiddleware, uploadItemImage } from './menu.image.js'
 
 export const menuRouter = Router()
 
@@ -50,3 +51,5 @@ menuRouter.post('/categories',
 
 menuRouter.put('/categories/:id',
   requireAuth, requireRole('manager'), updateCategory)
+menuRouter.post('/items/:id/image', 
+  requireAuth, requireRole('manager'), uploadMiddleware, uploadItemImage)

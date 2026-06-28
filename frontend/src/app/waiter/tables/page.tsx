@@ -7,6 +7,7 @@ import { connectSocket } from '@/lib/socket'
 import TableCell from '@/components/waiter/TableCell'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
+import RefreshButton from '@/components/ui/RefreshButton'
 
 export default function TableMapPage() {
   const router = useRouter()
@@ -33,7 +34,10 @@ export default function TableMapPage() {
       <div className="sticky top-0 z-10 bg-white border-b border-[#E5E5E5] px-4 py-3 flex items-center justify-between">
         <button onClick={() => router.back()} className="text-sm font-bold text-[#0A0A0A]">← Orders</button>
         <span className="text-base font-extrabold text-[#0A0A0A]">Table map</span>
-        <span className="text-xs text-gray-400">{tables?.length || 0} tables</span>
+        <div className="flex items-center gap-2">
+  <RefreshButton onClick={() => queryClient.invalidateQueries({ queryKey: ['tables'] })} />
+  <span className="text-xs text-gray-400">{tables?.length || 0} tables</span>
+</div>
       </div>
 
       <div className="grid grid-cols-4 gap-2.5 p-4">

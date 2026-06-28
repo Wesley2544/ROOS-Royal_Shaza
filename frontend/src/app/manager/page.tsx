@@ -10,6 +10,7 @@ import { STATUS } from '@/lib/statusStyles'
 import StatCard from '@/components/manager/StatCard'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
+import RefreshButton from '@/components/ui/RefreshButton'
 
 export default function ManagerDashboardPage() {
   const queryClient = useQueryClient()
@@ -46,11 +47,18 @@ export default function ManagerDashboardPage() {
 
   return (
     <div className="p-5">
-
       <div className="flex items-center justify-between mb-4">
-        <span className="text-base font-extrabold text-[#0A0A0A]">Dashboard — today</span>
-        <span className="bg-green-200 text-green-800 text-xs font-bold px-3 py-1 rounded-full">● Live</span>
-      </div>
+  <span className="text-base font-extrabold text-[#0A0A0A]">Dashboard — today</span>
+  <div className="flex items-center gap-2">
+    <RefreshButton onClick={() => {
+      queryClient.invalidateQueries({ queryKey: ['report-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
+    }} />
+    <span className="bg-green-200 text-green-800 text-xs font-bold px-3 py-1 rounded-full">● Live</span>
+  </div>
+</div>
+
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard value={summary?.active_orders ?? 0}             label="Active orders"    color="#DC2626" />

@@ -30,7 +30,7 @@ export function useOrders() {
       return res.data
     },
     staleTime:      0,
-    refetchInterval: 60000, // 60s fallback poll in case Socket misses an event
+    refetchInterval: 120000, // 120s fallback poll in case Socket misses an event
   })
 }
 

@@ -10,7 +10,7 @@ import { requireRole } from '../middleware/auth.middleware.js'
 
 export const tablesRouter = Router()
 
-// ── Public — must be defined BEFORE /:number to avoid conflict ─
+//  Public — must be defined BEFORE /:number to avoid conflict with table number route
 tablesRouter.get('/by-number/:number', async (req, res, next) => {
   try {
     const tableNumber = parseInt(req.params.number)
@@ -28,7 +28,7 @@ tablesRouter.get('/by-number/:number', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// ── Auth-protected routes ──────────────────────────────────────
+// Auth-protected routes for waiters and managers
 tablesRouter.get('/',
   requireAuth, requireRole('waiter', 'manager'), getAllTables)
 

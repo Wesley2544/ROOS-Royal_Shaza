@@ -54,3 +54,18 @@ export function useDeleteItem() {
     onSuccess:  () => invalidateMenu(qc),
   })
 }
+
+export function useUploadItemImage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await apiClient.post(`/menu/items/${id}/image`, formData, {
+        headers: { 'Content-Type': undefined },
+      })
+      return res.data
+    },
+    onSuccess: () => invalidateMenu(qc),
+  })
+}

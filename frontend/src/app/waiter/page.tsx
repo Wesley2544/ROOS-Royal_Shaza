@@ -8,6 +8,7 @@ import { connectSocket } from '@/lib/socket'
 import OrderListItem  from '@/components/waiter/OrderListItem'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
+import RefreshButton from '@/components/ui/RefreshButton'
 
 const TABS = [
   { key: 'all', label: 'All' },
@@ -52,9 +53,10 @@ export default function WaiterPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="bg-[#F4F4F5] text-[#0A0A0A] text-xs font-bold px-3 py-1 rounded-full">{activeOrders.length} active</span>
-          <button onClick={() => router.push('/waiter/tables')} className="text-xs font-bold text-[#0A0A0A] border border-[#E5E5E5] px-3 py-1.5 rounded-xl hover:bg-[#F5F5F5]">
-            Table map
-          </button>
+          <RefreshButton onClick={() => queryClient.invalidateQueries({ queryKey: ['orders'] })} />
+<button onClick={() => router.push('/waiter/tables')} className="text-xs font-bold text-[#0A0A0A] border border-[#E5E5E5] px-3 py-1.5 rounded-xl hover:bg-[#F5F5F5]">
+  Table map
+</button>
         </div>
       </div>
 
