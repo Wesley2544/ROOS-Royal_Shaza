@@ -1,6 +1,6 @@
 // Format KES price from cents to display string
 export function formatPrice(cents) {
-  return `KES ${(cents / 100).toLocaleString('en-KE', {
+  return `KES ${cents.toLocaleString('en-KE', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })}`
