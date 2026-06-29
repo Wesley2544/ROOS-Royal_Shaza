@@ -8,12 +8,12 @@ async function test() {
   try {
     const { data, error } = await supabase.storage.listBuckets()
     if (error) {
-      console.error(' Supabase responded with an error:', error)
+      console.error('❌ Supabase responded with an error:', error)
     } else {
-      console.log(' Connected successfully. Buckets found:', data.map(b => b.name))
+      console.log('✅ Connected successfully. Buckets found:', data.map(b => b.name))
     }
   } catch (err) {
-    console.error(' Raw network failure — real cause below:')
+    console.error('❌ Raw network failure — real cause below:')
     console.error('Message:', err.message)
     console.error('Cause:', err.cause)
   }
