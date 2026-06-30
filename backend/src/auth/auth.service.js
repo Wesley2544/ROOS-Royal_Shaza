@@ -76,13 +76,22 @@ export async function loginUser(username, password, role) {
 }
 
 // ── Register ───────────────────────────────────────────────────
-export async function registerUser({ name, username, password, role }) {
+export async function registerUser({ name, username, password, role, inviteCode }) {
   const parsed = registerSchema.safeParse({ name, username, password, role })
   if (!parsed.success) {
     const message = parsed.error.errors?.[0]?.message || 'Invalid request data'
     const err = new Error(message)
     err.status = 400
     throw err
+  }
+  // Manager accounts require a valid invite code — prevents anyone
+  // from self-granting manager access through the public signup form
+  if (role=='manager'){
+    if (!inviteCode || inviteCode !== process.env.MANAGER_INVITE_CODE){
+      const err=new Error('A valid manager invite code is required to create a manager account')
+      err.status=403
+      throw err
+    }
   }
 
   const existing = await prisma.user.findUnique({
@@ -116,4 +125,30 @@ export async function registerUser({ name, username, password, role }) {
       role:     user.role,
     },
   }
+}
+export async function changePassword(userId, currentPassword, newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    const err = new Error('New password must be at least 8 characters')
+    err.status = 400
+    throw err
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) {
+    const err = new Error('Account not found')
+    err.status = 404
+    throw err
+  }
+
+  const isValid = await bcrypt.compare(currentPassword, user.password_hash)
+  if (!isValid) {
+    const err = new Error('Current password is incorrect')
+    err.status = 401
+    throw err
+  }
+
+  const password_hash = await bcrypt.hash(newPassword, 12)
+  await prisma.user.update({ where: { id: userId }, data: { password_hash } })
+
+  return { message: 'Password updated successfully' }
 }
