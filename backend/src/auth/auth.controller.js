@@ -1,4 +1,4 @@
-import { loginUser, registerUser } from './auth.service.js'
+import { loginUser, registerUser, changePassword} from './auth.service.js'
 
 export async function login(req, res, next) {
   try {
@@ -12,8 +12,8 @@ export async function login(req, res, next) {
 
 export async function register(req, res, next) {
   try {
-    const { name, username, password, role } = req.body
-    const result = await registerUser({ name, username, password, role })
+    const { name, username, password, role, inviteCode } = req.body
+    const result = await registerUser({ name, username, password, role, inviteCode })
     res.status(201).json(result)
   } catch (err) {
     next(err)
@@ -22,4 +22,14 @@ export async function register(req, res, next) {
 
 export async function getMe(req, res) {
   res.json({ user: req.user })
+}
+
+export async function updatePassword(req, res, next) {
+  try {
+    const { currentPassword, newPassword } = req.body
+    const result = await changePassword(req.user.userId, currentPassword, newPassword)
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
 }
