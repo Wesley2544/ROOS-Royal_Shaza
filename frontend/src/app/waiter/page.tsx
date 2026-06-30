@@ -54,9 +54,12 @@ export default function WaiterPage() {
         <div className="flex items-center gap-2">
           <span className="bg-[#F4F4F5] text-[#0A0A0A] text-xs font-bold px-3 py-1 rounded-full">{activeOrders.length} active</span>
           <RefreshButton onClick={() => queryClient.invalidateQueries({ queryKey: ['orders'] })} />
-<button onClick={() => router.push('/waiter/tables')} className="text-xs font-bold text-[#0A0A0A] border border-[#E5E5E5] px-3 py-1.5 rounded-xl hover:bg-[#F5F5F5]">
-  Table map
-</button>
+          <button onClick={() => router.push('/waiter/tables')} className="text-xs font-bold text-[#0A0A0A] border border-[#E5E5E5] px-3 py-1.5 rounded-xl hover:bg-[#F5F5F5]">
+            Table map
+          </button>
+          <button onClick={logout} className="text-xs text-gray-400 hover:text-gray-700 ml-1">
+            Sign out
+          </button>
         </div>
       </div>
 
