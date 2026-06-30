@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [password,        setPassword]        = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [role,            setRole]            = useState('waiter')
+  const [inviteCode,      setInviteCode]      = useState('')
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState('')
 
@@ -31,7 +32,7 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      const res = await apiClient.post('/auth/register', { name, username, password, role })
+      const res = await apiClient.post('/auth/register', { name, username, password, role, inviteCode })
       const { token, user } = res.data
       saveAuth(token, user)
       router.replace(getHomeByRole(user.role))
@@ -86,6 +87,17 @@ export default function RegisterPage() {
               {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
+
+          {role === 'manager' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Manager invite code</label>
+              <input
+                type="password" value={inviteCode} onChange={e => setInviteCode(e.target.value)} required
+                placeholder="Provided by the hotel owner"
+                className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
