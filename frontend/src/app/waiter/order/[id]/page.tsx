@@ -55,7 +55,7 @@ export default function WaiterOrderDetailPage() {
 
   if (loading) return <LoadingSpinner message="Loading order…" />
   if (error)   return <ErrorMessage message={error} onRetry={() => window.location.reload()} />
-  if (!order)  return <ErrorMessage message="Order not found." />
+  if (!order)  return <ErrorMessage message="Order not found." onRetry={() => window.location.reload()} />
 
   const canServe = order.status === 'ready'
 
