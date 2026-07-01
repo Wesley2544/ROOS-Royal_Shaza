@@ -115,7 +115,7 @@ export default function OrderHistoryPage() {
           <div className="py-12 text-center text-gray-400 text-sm">No orders match your filters</div>
         ) : (
           filtered.map((o, idx) => {
-            const s = STATUS[o.status]
+            const s = STATUS[o.status as keyof typeof STATUS] // Get the status style for the order
             return (
               <div key={o.id} className={`grid grid-cols-[90px_60px_1fr_100px_100px_140px] px-4 py-3 items-center text-xs border-t border-[#E5E5E5] ${idx % 2 === 1 ? 'bg-[#F5F5F5]' : ''}`}>
                 <span className="font-bold text-[#0A0A0A]">#{o.id.slice(-6).toUpperCase()}</span>
