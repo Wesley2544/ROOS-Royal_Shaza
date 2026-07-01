@@ -63,7 +63,7 @@ export default function MenuPage() {
   }
 
   if (catsLoading) return <LoadingSpinner message="Loading menu…" />
-  if (catsError)   return <ErrorMessage message="Could not load the menu. Please try again." />
+  if (catsError)   return <ErrorMessage message="Could not load the menu. Please try again." onRetry={() => window.location.reload()} />
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] pb-24">
