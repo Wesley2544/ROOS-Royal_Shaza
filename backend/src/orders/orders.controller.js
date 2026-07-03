@@ -8,7 +8,8 @@ import {
 
 export async function placeOrder(req, res, next) {
   try {
-    const data = await createOrder(req.body)
+    const { table_id, items, special_notes, session_token } = req.body
+    const data = await createOrder({ table_id, items, special_notes, session_token })
     res.status(201).json(data)
   } catch (err) { next(err) }
 }

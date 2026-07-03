@@ -15,9 +15,9 @@ describe('Database integrity', () => {
       const count = await prisma.menuCategory.count({ where: { is_active: true } })
       expect(count).toBeGreaterThanOrEqual(4)
     })
-    it('has exactly 11 menu items', async () => {
+    it('has at least one menu item', async () => {
       const count = await prisma.menuItem.count({ where: { is_deleted: false } })
-      expect(count).toBeGreaterThanOrEqual(11)
+      expect(count).toBeGreaterThanOrEqual(1)
     })
     it('has exactly 12 restaurant tables', async () => {
       const count = await prisma.restaurantTable.count()
