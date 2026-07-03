@@ -44,13 +44,32 @@ export default function MenuPage() {
     sessionStorage.setItem('table_number', tableNumber)
   }, [tableNumber])
 
-  // Fetch the table ID and mint a fresh, time-limited ordering session —
-  // this is what a QR scan (or a page load) re-establishes
+  // Establish an ordering session — but only mint a NEW one when no valid
+  // session already exists for this exact table. A plain refresh reuses
+  // whatever is already stored, so it can never silently extend the clock.
   useEffect(() => {
-    async function fetchTableSession() {
+    async function establishSession() {
+      const storedForTable = sessionStorage.getItem('session_table_number')
+      const storedToken    = sessionStorage.getItem('table_session_token')
+      const storedExpiry   = sessionStorage.getItem('table_session_expires_at')
+      const storedTableId  = sessionStorage.getItem('table_id')
+
+      const hasStoredSession =
+        storedForTable === tableNumber && storedToken && storedExpiry && storedTableId
+
+      if (hasStoredSession) {
+        const stillValid = new Date(storedExpiry).getTime() > Date.now()
+        setSessionExpired(!stillValid)
+        setSessionChecked(true)
+        return // never contact the backend here — reuse or block, don't renew
+      }
+
+      // No session on record for this table in this tab — a genuine first
+      // load, equivalent to just having scanned the QR code.
       try {
         const res = await apiClient.get(`/tables/by-number/${tableNumber}`)
         sessionStorage.setItem('table_id', res.data.id)
+        sessionStorage.setItem('session_table_number', tableNumber)
         sessionStorage.setItem('table_session_token', res.data.session_token)
         sessionStorage.setItem('table_session_expires_at', res.data.session_expires_at)
         setSessionExpired(false)
@@ -60,10 +79,11 @@ export default function MenuPage() {
         setSessionChecked(true)
       }
     }
-    fetchTableSession()
+    establishSession()
   }, [tableNumber])
 
-  // Watch for the session quietly expiring while sitting on this page
+  // Catch expiry happening while the customer is sitting on the page,
+  // without needing a refresh to notice.
   useEffect(() => {
     const interval = setInterval(() => {
       const expiresAt = sessionStorage.getItem('table_session_expires_at')
