@@ -8,6 +8,7 @@ import apiClient from '@/lib/apiClient'
 import CategoryTabs from '@/components/menu/CategoryTabs'
 import ItemCard     from '@/components/menu/ItemCard'
 import CartBar      from '@/components/menu/CartBar'
+import SessionExpired from '@/components/menu/SessionExpired'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
 
@@ -21,6 +22,8 @@ export default function MenuPage() {
   const { data: items, isLoading: itemsLoading } = useMenuItems(activeCategoryId || undefined)
 
   const cart = useCart()
+  const [sessionExpired, setSessionExpired] = useState(false)
+  const [sessionChecked, setSessionChecked] = useState(false)
 
   useEffect(() => {
     if (categories && categories.length > 0 && !activeCategoryId) {
@@ -41,17 +44,35 @@ export default function MenuPage() {
     sessionStorage.setItem('table_number', tableNumber)
   }, [tableNumber])
 
+  // Fetch the table ID and mint a fresh, time-limited ordering session —
+  // this is what a QR scan (or a page load) re-establishes
   useEffect(() => {
-    async function fetchTableId() {
+    async function fetchTableSession() {
       try {
         const res = await apiClient.get(`/tables/by-number/${tableNumber}`)
         sessionStorage.setItem('table_id', res.data.id)
+        sessionStorage.setItem('table_session_token', res.data.session_token)
+        sessionStorage.setItem('table_session_expires_at', res.data.session_expires_at)
+        setSessionExpired(false)
       } catch (err) {
-        console.error('Could not fetch table ID:', err)
+        console.error('Could not fetch table session:', err)
+      } finally {
+        setSessionChecked(true)
       }
     }
-    fetchTableId()
+    fetchTableSession()
   }, [tableNumber])
+
+  // Watch for the session quietly expiring while sitting on this page
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const expiresAt = sessionStorage.getItem('table_session_expires_at')
+      if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+        setSessionExpired(true)
+      }
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [])
 
   function handleViewCart() {
     sessionStorage.setItem('cart', JSON.stringify({
@@ -62,7 +83,8 @@ export default function MenuPage() {
     router.push('/menu/cart')
   }
 
-  if (catsLoading) return <LoadingSpinner message="Loading menu…" />
+  if (!sessionChecked || catsLoading) return <LoadingSpinner message="Loading menu…" />
+  if (sessionExpired) return <SessionExpired tableNumber={tableNumber} />
   if (catsError)   return <ErrorMessage message="Could not load the menu. Please try again." onRetry={() => window.location.reload()} />
 
   return (
