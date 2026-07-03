@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import prisma from '../lib/prisma.js'
+import { issueCustomerSession } from '../lib/customerSession.js'
 import {
   getAllTables,
   getTableByNumber,
@@ -10,7 +11,7 @@ import { requireRole } from '../middleware/auth.middleware.js'
 
 export const tablesRouter = Router()
 
-//  Public — must be defined BEFORE /:number to avoid conflict with table number route
+//  Public — customer needs table UUID + a time-limited session 
 tablesRouter.get('/by-number/:number', async (req, res, next) => {
   try {
     const tableNumber = parseInt(req.params.number)
@@ -24,11 +25,18 @@ tablesRouter.get('/by-number/:number', async (req, res, next) => {
     if (!table) {
       return res.status(404).json({ error: 'Table not found' })
     }
-    res.json(table)
+
+    const { token, expiresAt } = issueCustomerSession(table.id, table.table_number)
+
+    res.json({
+      ...table,
+      session_token:      token,
+      session_expires_at: expiresAt,
+    })
   } catch (err) { next(err) }
 })
 
-// Auth-protected routes for waiters and managers
+//  Auth-protected routes 
 tablesRouter.get('/',
   requireAuth, requireRole('waiter', 'manager'), getAllTables)
 

@@ -81,11 +81,14 @@ app.use((err, req, res, next) => {
     ? 'Something went wrong. Please try again.'
     : err.message || 'Internal server error'
 
-  res.status(status).json({
+  const body = {
     error:     message,
     status,
     timestamp: new Date().toISOString(),
     path:      req.path,
-  })
+  }
+  if (err.code) body.code = err.code
+
+  res.status(status).json(body)
 })
 export default app

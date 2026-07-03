@@ -1,6 +1,7 @@
 import { getBroadcast } from '../socket/socket.server.js'
 import { z } from 'zod'
 import prisma from '../lib/prisma.js'
+import { verifyCustomerSession, issueCustomerSession } from '../lib/customerSession.js'
 
 //  Validation schemas 
 const orderSchema = z.object({
@@ -11,6 +12,7 @@ const orderSchema = z.object({
     item_notes:   z.string().optional(),
   })).min(1, 'Order must contain at least one item'),
   special_notes: z.string().optional(),
+  session_token: z.string().optional(),
 })
 
 //  State machine for order status transitions (only allow valid progressions to prevent accidental skips or regressions)
@@ -38,7 +40,10 @@ export async function createOrder(body) {
     throw err
   }
 
-  const { table_id, items, special_notes } = parsed.data
+  const { table_id, items, special_notes, session_token } = parsed.data
+
+  // Verify customer session at the start
+  verifyCustomerSession(session_token, table_id)
 
   // 2. Confirm table exists and is in a state that can accept new orders (e.g., not occupied with an active order)
   const table = await prisma.restaurantTable.findUnique({
@@ -142,7 +147,11 @@ export async function createOrder(body) {
     console.error('Broadcast error:', e.message)
   }
 
-  return order
+  // Issue fresh session token (resets on each order)
+  const { token: fresh_session_token, expiresAt: session_expires_at } =
+    issueCustomerSession(table_id)
+
+  return { ...order, session_token: fresh_session_token, session_expires_at }
 }
 
 //  Get orders (role-filtered) — kitchen sees all except served, waiters see all except served, managers see all
