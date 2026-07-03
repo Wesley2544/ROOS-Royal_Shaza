@@ -11,6 +11,7 @@ import CartBar      from '@/components/menu/CartBar'
 import SessionExpired from '@/components/menu/SessionExpired'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
+import { isTableSessionValid } from '@/lib/sessionCheck'
 
 export default function MenuPage() {
   const router       = useRouter()
@@ -95,12 +96,17 @@ export default function MenuPage() {
   }, [])
 
   function handleViewCart() {
-    sessionStorage.setItem('cart', JSON.stringify({
-      items:        cart.items,
-      specialNotes: cart.specialNotes,
-      tableNumber,
-    }))
-    router.push('/menu/cart')
+    if (!isTableSessionValid(tableNumber)) {
+    setSessionExpired(true)
+    return
+  }
+  sessionStorage.setItem('cart', JSON.stringify({
+    items:        cart.items,
+    specialNotes: cart.specialNotes,
+    tableNumber,
+  }))
+  router.push('/menu/cart')
+
   }
 
   if (!sessionChecked || catsLoading) return <LoadingSpinner message="Loading menu…" />

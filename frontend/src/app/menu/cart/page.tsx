@@ -5,6 +5,7 @@ import apiClient from '@/lib/apiClient'
 import { formatPrice } from '@/utils/format'
 import SessionExpired from '@/components/menu/SessionExpired'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { isTableSessionValid } from '@/lib/sessionCheck'
 
 interface CartItem {
   menuItem: { id: string; name: string; price: number }
@@ -42,6 +43,10 @@ export default function CartPage() {
 
   async function handlePlaceOrder() {
     if (!cart || cart.items.length === 0) return
+    if (!isTableSessionValid(cart.tableNumber)) {
+      setSessionExpired(true)
+      return
+    }
     const tableId = sessionStorage.getItem('table_id')
     const sessionToken = sessionStorage.getItem('table_session_token')
     if (!tableId || !sessionToken) {
