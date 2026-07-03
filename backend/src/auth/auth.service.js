@@ -126,6 +126,7 @@ export async function registerUser({ name, username, password, role, inviteCode 
     },
   }
 }
+// change password
 export async function changePassword(userId, currentPassword, newPassword) {
   if (!newPassword || newPassword.length < 8) {
     const err = new Error('New password must be at least 8 characters')
