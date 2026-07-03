@@ -49,25 +49,6 @@ export default function MenuPage() {
   useEffect(() => {
     async function fetchTableSession() {
       try {
-        // Check if there's already a session in storage
-        const existingToken = sessionStorage.getItem('table_session_token')
-        const expiresAt = sessionStorage.getItem('table_session_expires_at')
-        
-        // If session exists and hasn't expired, keep using it
-        if (existingToken && expiresAt && new Date(expiresAt).getTime() > Date.now()) {
-          setSessionExpired(false)
-          setSessionChecked(true)
-          return
-        }
-        
-        // If session exists but IS expired, show expired state
-        if (existingToken && expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
-          setSessionExpired(true)
-          setSessionChecked(true)
-          return
-        }
-        
-        // Only fetch new session if no session exists yet (first visit)
         const res = await apiClient.get(`/tables/by-number/${tableNumber}`)
         sessionStorage.setItem('table_id', res.data.id)
         sessionStorage.setItem('table_session_token', res.data.session_token)
