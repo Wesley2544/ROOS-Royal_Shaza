@@ -18,7 +18,7 @@ export async function fetchSummary(range = 'today') {
   const { start } = getDateRange(range)
 
   const active_orders = await prisma.order.count({
-    where: { status: { not: 'served' } }
+    where: { is_deleted: false, status: { not: 'served' } }
   })
 
   const tables_occupied = await prisma.restaurantTable.count({
@@ -26,7 +26,7 @@ export async function fetchSummary(range = 'today') {
   })
 
   const rangeOrders = await prisma.order.findMany({
-    where: { created_at: { gte: start } },
+    where: { is_deleted: false, created_at: { gte: start } },
     include: {
       items: { include: { menu_item: { include: { category: true } } } },
       waiter: { select: { id: true, name: true } },

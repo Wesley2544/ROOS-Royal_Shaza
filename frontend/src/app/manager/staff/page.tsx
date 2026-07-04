@@ -1,14 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useStaffList, useToggleStaffActive, useCreateStaff } from '@/hooks/useStaff'
+import { useStaffList, useToggleStaffActive, useCreateStaff, useDeleteStaff } from '@/hooks/useStaff'
 import RefreshButton from '@/components/ui/RefreshButton'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
 
 const ROLE_STYLE: Record<string, string> = {
   manager: 'bg-purple-100 text-purple-700',
-  waiter:  'bg-blue-100 text-blue-700',
+  waiter: 'bg-blue-100 text-blue-700',
   kitchen: 'bg-orange-100 text-orange-700',
 }
 
@@ -17,14 +17,16 @@ export default function StaffAccountsPage() {
   const { data: staff, isLoading, error } = useStaffList()
   const toggleActive = useToggleStaffActive()
   const createStaff = useCreateStaff()
+  const deleteStaff = useDeleteStaff()
 
   const [modalOpen, setModalOpen] = useState(false)
-  const [confirmTarget, setConfirmTarget] = useState<{id:string; name:string; nextActive:boolean} | null>(null)
-  const [form, setForm] = useState({ name:'', username:'', password:'', role:'waiter' })
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string; nextActive: boolean } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [form, setForm] = useState({ name: '', username: '', password: '', role: 'waiter' })
   const [formError, setFormError] = useState('')
 
   if (isLoading) return <LoadingSpinner message="Loading staff accounts…" />
-  if (error)      return <ErrorMessage message="Could not load staff accounts." onRetry={() => window.location.reload()} />
+  if (error) return <ErrorMessage message="Could not load staff accounts." onRetry={() => window.location.reload()} />
 
   async function handleAddStaff(e: React.FormEvent) {
     e.preventDefault()
@@ -36,7 +38,7 @@ export default function StaffAccountsPage() {
     try {
       await createStaff.mutateAsync(form)
       setModalOpen(false)
-      setForm({ name:'', username:'', password:'', role:'waiter' })
+      setForm({ name: '', username: '', password: '', role: 'waiter' })
     } catch (err: any) {
       setFormError(err.response?.data?.error || 'Could not create account.')
     }
@@ -46,6 +48,12 @@ export default function StaffAccountsPage() {
     if (!confirmTarget) return
     await toggleActive.mutateAsync({ id: confirmTarget.id, is_active: confirmTarget.nextActive })
     setConfirmTarget(null)
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return
+    await deleteStaff.mutateAsync(deleteTarget.id)
+    setDeleteTarget(null)
   }
 
   return (
@@ -64,7 +72,7 @@ export default function StaffAccountsPage() {
       </div>
 
       <div className="bg-white rounded-[18px] border border-[#E5E5E5] overflow-hidden">
-        <div className="grid grid-cols-[1fr_1fr_100px_90px_110px] bg-white border-b border-[#E5E5E5] px-4 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide">
+        <div className="grid grid-cols-[1fr_1fr_100px_90px_180px] bg-white border-b border-[#E5E5E5] px-4 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide">
           <span>Name</span><span>Username</span><span>Role</span><span>Status</span><span>Actions</span>
         </div>
         {staff?.length === 0 ? (
@@ -73,7 +81,7 @@ export default function StaffAccountsPage() {
           staff?.map((member, idx) => (
             <div
               key={member.id}
-              className={`grid grid-cols-[1fr_1fr_100px_90px_110px] px-4 py-3 items-center text-xs border-t border-[#E5E5E5] ${idx % 2 === 1 ? 'bg-[#F5F5F5]' : ''}`}
+              className={`grid grid-cols-[1fr_1fr_100px_90px_180px] px-4 py-3 items-center text-xs border-t border-[#E5E5E5] ${idx % 2 === 1 ? 'bg-[#F5F5F5]' : ''}`}
             >
               <span className="font-bold text-[#0A0A0A]">{member.name}</span>
               <span className="text-gray-500">{member.username}</span>
@@ -83,12 +91,22 @@ export default function StaffAccountsPage() {
               <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold w-fit ${member.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                 {member.is_active ? 'Active' : 'Deactivated'}
               </span>
-              <button
-                onClick={() => setConfirmTarget({ id: member.id, name: member.name, nextActive: !member.is_active })}
-                className={`px-3 py-1 rounded-lg text-[11px] font-bold w-fit border ${member.is_active ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'}`}
-              >
-                {member.is_active ? 'Deactivate' : 'Reactivate'}
-              </button>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setConfirmTarget({ id: member.id, name: member.name, nextActive: !member.is_active })}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border ${member.is_active ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'}`}
+                >
+                  {member.is_active ? 'Deactivate' : 'Reactivate'}
+                </button>
+                {member.role !== 'manager' && (
+                  <button
+                    onClick={() => setDeleteTarget({ id: member.id, name: member.name })}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-red-300 bg-white text-red-700 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
@@ -104,24 +122,18 @@ export default function StaffAccountsPage() {
             <form onSubmit={handleAddStaff} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">Full name</label>
-                <input
-                  type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-                />
+                <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">Username</label>
-                <input
-                  type="text" value={form.username} onChange={e => setForm({...form, username: e.target.value})}
-                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-                />
+                <input type="text" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">Role</label>
-                <select
-                  value={form.role} onChange={e => setForm({...form, role: e.target.value})}
-                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-                >
+                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]">
                   <option value="waiter">Waiter</option>
                   <option value="kitchen">Kitchen</option>
                   <option value="manager">Manager</option>
@@ -129,11 +141,9 @@ export default function StaffAccountsPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">Password</label>
-                <input
-                  type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})}
+                <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                   placeholder="At least 8 characters"
-                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-                />
+                  className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]" />
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setModalOpen(false)} className="flex-1 py-2.5 border border-[#E5E5E5] text-gray-600 rounded-xl text-sm font-bold hover:bg-[#F5F5F5]">
@@ -168,6 +178,28 @@ export default function StaffAccountsPage() {
                 className={`flex-1 py-2 rounded-xl text-xs font-bold disabled:opacity-60 ${confirmTarget.nextActive ? 'bg-green-700 text-white hover:bg-green-800' : 'bg-red-700 text-white hover:bg-red-800'}`}
               >
                 {toggleActive.isPending ? 'Updating…' : confirmTarget.nextActive ? 'Reactivate' : 'Deactivate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[18px] shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-sm font-bold text-[#0A0A0A] mb-2">Move {deleteTarget.name} to trash?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              They'll be signed out immediately and removed from this list. This is reversible — deleted accounts can be restored from Settings.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2 border border-[#E5E5E5] text-gray-600 rounded-xl text-xs font-bold hover:bg-[#F5F5F5]">
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete} disabled={deleteStaff.isPending}
+                className="flex-1 py-2 bg-red-700 text-white rounded-xl text-xs font-bold hover:bg-red-800 disabled:opacity-60"
+              >
+                {deleteStaff.isPending ? 'Moving…' : 'Move to trash'}
               </button>
             </div>
           </div>

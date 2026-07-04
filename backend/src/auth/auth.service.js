@@ -56,7 +56,7 @@ export async function loginUser(username, password, role) {
     user ? user.password_hash : dummyHash
   )
 
-  if (!user || !isValid || !user.is_active || user.role !== role) {
+  if (!user || !isValid || !user.is_active || user.is_deleted || user.role !== role) {
     const err = new Error('Invalid username, role, or password')
     err.status = 401
     throw err

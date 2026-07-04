@@ -4,6 +4,7 @@ import {
   fetchOrderById,
   changeOrderStatus,
   fetchOrderHistory,
+  softDeleteOrder,
 } from './orders.service.js'
 
 export async function placeOrder(req, res, next) {
@@ -45,5 +46,11 @@ export async function getOrderHistory(req, res, next) {
     const data = await fetchOrderHistory({ from, to,
       limit: parseInt(limit), offset: parseInt(offset) })
     res.json(data)
+  } catch (err) { next(err) }
+}
+
+export async function deleteOrder(req, res, next) {
+  try {
+    res.json(await softDeleteOrder(req.params.id))
   } catch (err) { next(err) }
 }
