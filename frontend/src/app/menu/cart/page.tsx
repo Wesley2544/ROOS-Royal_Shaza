@@ -3,9 +3,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/apiClient'
 import { formatPrice } from '@/utils/format'
-import SessionExpired from '@/components/menu/SessionExpired'
+import SessionGate from '@/components/menu/SessionGate'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
-import { isTableSessionValid } from '@/lib/sessionCheck'
 
 interface CartItem {
   menuItem: { id: string; name: string; price: number }
@@ -41,16 +40,18 @@ export default function CartPage() {
     }
   }, [])
 
+  function handleSessionStarted(token: string, expiresAt: string) {
+    sessionStorage.setItem('table_session_token', token)
+    sessionStorage.setItem('table_session_expires_at', expiresAt)
+    setSessionExpired(false)
+  }
+
   async function handlePlaceOrder() {
     if (!cart || cart.items.length === 0) return
-    if (!isTableSessionValid(cart.tableNumber)) {
-      setSessionExpired(true)
-      return
-    }
     const tableId = sessionStorage.getItem('table_id')
     const sessionToken = sessionStorage.getItem('table_session_token')
     if (!tableId || !sessionToken) {
-      setError('Table not found. Please scan the QR code again.')
+      setSessionExpired(true)
       return
     }
     setLoading(true)
@@ -67,8 +68,6 @@ export default function CartPage() {
         })),
       })
 
-      // Extend the session — lets the table order dessert or another
-      // round later without being cut off mid-meal
       if (res.data.session_token) {
         sessionStorage.setItem('table_session_token', res.data.session_token)
         sessionStorage.setItem('table_session_expires_at', res.data.session_expires_at)
@@ -91,7 +90,15 @@ export default function CartPage() {
     }
   }
 
-  if (sessionExpired) return <SessionExpired tableNumber={cart?.tableNumber} />
+  if (sessionExpired) {
+    return (
+      <SessionGate
+        tableNumber={cart?.tableNumber || sessionStorage.getItem('table_number') || ''}
+        tableId={sessionStorage.getItem('table_id')}
+        expired
+      />
+    )
+  }
 
   if (notFound) {
     return (

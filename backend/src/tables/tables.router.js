@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import prisma from '../lib/prisma.js'
-import { issueCustomerSession } from '../lib/customerSession.js'
+import { checkTableSession, startTableSession } from '../lib/customerSession.js'
 import {
   getAllTables,
   getTableByNumber,
@@ -11,7 +11,6 @@ import { requireRole } from '../middleware/auth.middleware.js'
 
 export const tablesRouter = Router()
 
-//  Public — customer needs table UUID + a time-limited session 
 tablesRouter.get('/by-number/:number', async (req, res, next) => {
   try {
     const tableNumber = parseInt(req.params.number)
@@ -26,17 +25,28 @@ tablesRouter.get('/by-number/:number', async (req, res, next) => {
       return res.status(404).json({ error: 'Table not found' })
     }
 
-    const { token, expiresAt } = issueCustomerSession(table.id, table.table_number)
+    const session = await checkTableSession(table.id)
 
     res.json({
       ...table,
-      session_token:      token,
-      session_expires_at: expiresAt,
+      session_active: session.active,
+      session_token: session.token,
+      session_expires_at: session.expiresAt,
     })
   } catch (err) { next(err) }
 })
 
-//  Auth-protected routes 
+tablesRouter.post('/:id/start-session', async (req, res, next) => {
+  try {
+    const table = await prisma.restaurantTable.findUnique({ where: { id: req.params.id } })
+    if (!table) {
+      return res.status(404).json({ error: 'Table not found' })
+    }
+    const { token, expiresAt } = await startTableSession(table.id)
+    res.json({ session_token: token, session_expires_at: expiresAt })
+  } catch (err) { next(err) }
+})
+
 tablesRouter.get('/',
   requireAuth, requireRole('waiter', 'manager'), getAllTables)
 

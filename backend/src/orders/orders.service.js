@@ -1,7 +1,7 @@
 import { getBroadcast } from '../socket/socket.server.js'
 import { z } from 'zod'
 import prisma from '../lib/prisma.js'
-import { verifyCustomerSession, issueCustomerSession } from '../lib/customerSession.js'
+import { verifyCustomerSession, extendTableSession } from '../lib/customerSession.js'
 
 //  Validation schemas 
 const orderSchema = z.object({
@@ -87,37 +87,33 @@ export async function createOrder(body) {
 
   const total_amount = orderItems.reduce((sum, i) => sum + i.subtotal, 0)
 
-  // 6. Write order + items + initial status log in a single transaction
-  const order = await prisma.$transaction(async (tx) => {
-    const newOrder = await tx.order.create({
-      data: {
-        table_id,
-        total_amount,
-        special_notes: special_notes || null,
-        status: 'new',
-        items: { create: orderItems },
-      },
-      include: {
-        items: true,
-        table: { select: { table_number: true } },
-      },
-    })
+  // 6. Create the order, its initial status log, and update table status.
+  const order = await prisma.order.create({
+    data: {
+      table_id,
+      total_amount,
+      special_notes: special_notes || null,
+      status: 'new',
+      items: { create: orderItems },
+    },
+    include: {
+      items: true,
+      table: { select: { table_number: true } },
+    },
+  })
 
-    // Write initial status log entry (this provides a complete history of status changes starting from the moment the order is created, which is important for auditing and debugging purposes)
-    await tx.orderStatusLog.create({
-      data: {
-        order_id: newOrder.id,
-        status:   'new',
-      }
-    })
+  // Write initial status log entry (this provides a complete history of status changes starting from the moment the order is created, which is important for auditing and debugging purposes)
+  await prisma.orderStatusLog.create({
+    data: {
+      order_id: order.id,
+      status:   'new',
+    }
+  })
 
-    // Update table status to ordering  (this ensures the table is marked as occupied and prevents new orders from being placed at the same table until the current order is served and the table is reset to free)
-    await tx.restaurantTable.update({
-      where: { id: table_id },
-      data:  { status: 'ordering' },
-    })
-
-    return newOrder
+  // Update table status to ordering  (this ensures the table is marked as occupied and prevents new orders from being placed at the same table until the current order is served and the table is reset to free)
+  await prisma.restaurantTable.update({
+    where: { id: table_id },
+    data:  { status: 'ordering' },
   })
 
   // 7. Write notification record for customer (this allows the frontend to display a notification in the customer's order history or notifications section, confirming that their order was received and is being processed)
@@ -147,9 +143,9 @@ export async function createOrder(body) {
     console.error('Broadcast error:', e.message)
   }
 
-  // Issue fresh session token (resets on each order)
+  // Extend the active customer session after a successful order
   const { token: fresh_session_token, expiresAt: session_expires_at } =
-    issueCustomerSession(table_id)
+    await extendTableSession(table_id)
 
   return { ...order, session_token: fresh_session_token, session_expires_at }
 }

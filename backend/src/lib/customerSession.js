@@ -1,22 +1,47 @@
 import jwt from 'jsonwebtoken'
+import prisma from './prisma.js'
 
-const SESSION_MINUTES = parseInt(process.env.CUSTOMER_SESSION_MINUTES || '20', 10)
+const SESSION_MINUTES = parseInt(process.env.CUSTOMER_SESSION_MINUTES || '10', 10)
 
-export function issueCustomerSession(tableId, tableNumber = null) {
-  const token = jwt.sign(
-    { tableId, tableNumber, purpose: 'customer_session' },
-    process.env.JWT_SECRET,
-    { expiresIn: `${SESSION_MINUTES}m` }
+function signSessionToken(tableId, expiresAt) {
+  return jwt.sign(
+    { tableId, purpose: 'customer_session', exp: Math.floor(expiresAt.getTime() / 1000) },
+    process.env.JWT_SECRET
   )
-  const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60 * 1000).toISOString()
-  return { token, expiresAt }
+}
+
+export async function checkTableSession(tableId) {
+  const table = await prisma.restaurantTable.findUnique({ where: { id: tableId } })
+  if (!table) {
+    const err = new Error('Table not found')
+    err.status = 404
+    throw err
+  }
+
+  const now = new Date()
+  const active = table.active_session_expires_at && table.active_session_expires_at.getTime() > now.getTime()
+
+  if (!active) return { active: false, token: null, expiresAt: null }
+
+  const token = signSessionToken(tableId, table.active_session_expires_at)
+  return { active: true, token, expiresAt: table.active_session_expires_at.toISOString() }
+}
+
+export async function startTableSession(tableId) {
+  const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60 * 1000)
+  await prisma.restaurantTable.update({
+    where: { id: tableId },
+    data: { active_session_expires_at: expiresAt },
+  })
+  const token = signSessionToken(tableId, expiresAt)
+  return { token, expiresAt: expiresAt.toISOString() }
+}
+
+export async function extendTableSession(tableId) {
+  return startTableSession(tableId)
 }
 
 export function verifyCustomerSession(token, tableId) {
-  // In the test environment, only enforce this when a token was actually
-  // supplied. This lets the existing order/table tests — written before
-  // this feature existed — keep passing untouched, while this file's own
-  // dedicated tests still exercise real verification by passing a token.
   if (process.env.NODE_ENV === 'test' && !token) return
 
   let decoded
