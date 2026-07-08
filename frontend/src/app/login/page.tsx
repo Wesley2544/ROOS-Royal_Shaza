@@ -3,20 +3,26 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/apiClient'
 import { saveAuth, getHomeByRole } from '@/lib/auth'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 const ROLES = [
   { value: 'manager', label: 'Manager' },
   { value: 'kitchen', label: 'Kitchen' },
-  { value: 'waiter',  label: 'Waiter'  },
+  { value: 'waiter', label: 'Waiter' },
 ]
+
+function getApiErrorMessage(err: unknown, fallback: string) {
+  const apiError = err as { response?: { data?: { error?: string } } }
+  return apiError.response?.data?.error || fallback
+}
 
 export default function LoginPage() {
   const router = useRouter()
-  const [role,     setRole]     = useState('')
+  const [role, setRole] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -27,8 +33,8 @@ export default function LoginPage() {
       const { token, user } = res.data
       saveAuth(token, user)
       router.replace(getHomeByRole(user.role))
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Login failed. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -36,13 +42,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex flex-col items-center justify-center px-4">
-
       <div className="mb-8 text-center">
         <div className="text-2xl font-extrabold text-[#0A0A0A]">Royal Shaza Suites</div>
         <div className="text-sm text-gray-500 mt-1">Staff portal</div>
       </div>
 
-      <div className="w-full max-w-sm bg-[#FFFFFF] border border-[#E5E5E5] rounded-[18px] shadow-sm p-8">
+      <div className="w-full max-w-sm bg-white border border-[#E5E5E5] rounded-[18px] shadow-sm p-8">
         <h1 className="text-lg font-bold text-[#0A0A0A] mb-6">Sign in to your account</h1>
 
         {error && (
@@ -55,18 +60,23 @@ export default function LoginPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">I am signing in as</label>
             <select
-              value={role} onChange={e => setRole(e.target.value)} required
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              required
               className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
             >
-              <option value="" disabled>Select your role…</option>
-              {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              <option value="" disabled>Select your role...</option>
+              {ROLES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
             <input
-              type="text" value={username} onChange={e => setUsername(e.target.value)} required
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
               placeholder="your username"
               className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
             />
@@ -74,18 +84,15 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password" value={password} onChange={e => setPassword(e.target.value)} required
-              placeholder="••••••••"
-              className="w-full px-3 py-2.5 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-            />
+            <PasswordInput value={password} onChange={setPassword} placeholder="your password" required />
           </div>
 
           <button
-            type="submit" disabled={loading}
+            type="submit"
+            disabled={loading}
             className="w-full py-2.5 bg-[#FDC700] text-[#0A0A0A] text-sm font-bold rounded-xl hover:brightness-95 disabled:opacity-60 transition mt-2"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
@@ -98,7 +105,7 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-6 text-xs text-gray-400 text-center">
-        Kitchen · Waiter · Manager accounts only
+        Kitchen / Waiter / Manager accounts only
       </p>
     </div>
   )

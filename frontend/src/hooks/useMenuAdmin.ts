@@ -2,6 +2,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/apiClient'
 import { MenuItem } from './useMenu'
 
+export interface MenuItemPayload {
+  category_id?: string
+  name?: string
+  description?: string
+  price?: number
+  dietary_tags?: string[]
+  image_url?: string
+}
+
 function invalidateMenu(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['menu-items'] })
   qc.invalidateQueries({ queryKey: ['menu-items-all'] })
@@ -11,7 +20,7 @@ function invalidateMenu(qc: ReturnType<typeof useQueryClient>) {
 export function useCreateItem() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (data: any) => (await apiClient.post('/menu/items', data)).data,
+    mutationFn: async (data: MenuItemPayload) => (await apiClient.post('/menu/items', data)).data,
     onSuccess:  () => invalidateMenu(qc),
   })
 }
@@ -19,7 +28,7 @@ export function useCreateItem() {
 export function useUpdateItem() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) =>
+    mutationFn: async ({ id, data }: { id: string; data: MenuItemPayload }) =>
       (await apiClient.put(`/menu/items/${id}`, data)).data,
     onSuccess: () => invalidateMenu(qc),
   })
@@ -66,6 +75,23 @@ export function useUploadItemImage() {
       })
       return res.data
     },
+    onSuccess: () => invalidateMenu(qc),
+  })
+}
+
+export function useCreateCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (name: string) => (await apiClient.post('/menu/categories', { name })).data,
+    onSuccess: () => invalidateMenu(qc),
+  })
+}
+
+export function useUpdateCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) =>
+      (await apiClient.put(`/menu/categories/${id}`, { name })).data,
     onSuccess: () => invalidateMenu(qc),
   })
 }

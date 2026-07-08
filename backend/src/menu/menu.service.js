@@ -12,8 +12,7 @@ const itemSchema = z.object({
 })
 
 const categorySchema = z.object({
-  name:       z.string().min(2).max(80),
-  sort_order: z.number().int().default(0),
+  name: z.string().min(1, 'Category name is required').max(60, 'Category name is too long'),
 })
 
 //  Helper: throw a clean 404 error 
@@ -34,28 +33,65 @@ export async function fetchCategories() {
   })
 }
 
-export async function addCategory(body) {
-  const parsed = categorySchema.safeParse(body)
+export async function createCategory({ name }) {
+  const parsed = categorySchema.safeParse({ name })
   if (!parsed.success) {
-    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const message = parsed.error.errors?.[0]?.message || parsed.error.issues?.[0]?.message || 'Invalid request data'
     const err = new Error(message)
     err.status = 400
     throw err
   }
-  return prisma.menuCategory.create({ data: parsed.data })
+
+  const existing = await prisma.menuCategory.findFirst({
+    where: { name: { equals: name.trim(), mode: 'insensitive' }, is_active: true },
+  })
+  if (existing) {
+    const err = new Error('A category with this name already exists')
+    err.status = 409
+    throw err
+  }
+
+  const maxSort = await prisma.menuCategory.aggregate({
+    _max: { sort_order: true },
+    where: { is_active: true },
+  })
+  const nextSortOrder = (maxSort._max.sort_order ?? 0) + 1
+
+  return prisma.menuCategory.create({
+    data: { name: name.trim(), sort_order: nextSortOrder, is_active: true },
+  })
 }
 
-export async function editCategory(id, body) {
-  const existing = await prisma.menuCategory.findUnique({ where: { id } })
-  if (!existing) notFound('Category')
-  const parsed = categorySchema.partial().safeParse(body)
+export async function addCategory(body) {
+  return createCategory(body)
+}
+
+export async function editCategory(id, { name }) {
+  const parsed = categorySchema.safeParse({ name })
   if (!parsed.success) {
-    const message = parsed.error.errors?.[0].message || 'Invalid request data'
+    const message = parsed.error.errors?.[0]?.message || parsed.error.issues?.[0]?.message || 'Invalid request data'
     const err = new Error(message)
     err.status = 400
     throw err
   }
-  return prisma.menuCategory.update({ where: { id }, data: parsed.data })
+
+  const category = await prisma.menuCategory.findUnique({ where: { id } })
+  if (!category || !category.is_active) {
+    const err = new Error('Category not found')
+    err.status = 404
+    throw err
+  }
+
+  const duplicate = await prisma.menuCategory.findFirst({
+    where: { name: { equals: name.trim(), mode: 'insensitive' }, is_active: true, NOT: { id } },
+  })
+  if (duplicate) {
+    const err = new Error('A category with this name already exists')
+    err.status = 409
+    throw err
+  }
+
+  return prisma.menuCategory.update({ where: { id }, data: { name: name.trim() } })
 }
 
 // Menu items

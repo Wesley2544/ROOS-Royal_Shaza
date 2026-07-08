@@ -6,7 +6,7 @@ import {
   editItem,
   setAvailability,
   removeItem,
-  addCategory,
+  createCategory as createMenuCategory,
   editCategory,
 } from './menu.service.js'
 
@@ -60,16 +60,19 @@ export async function deleteItem(req, res, next) {
   } catch (err) { next(err) }
 }
 
-export async function createCategory(req, res, next) {
+export async function postCategory(req, res, next) {
   try {
-    const data = await addCategory(req.body)
-    res.status(201).json(data)
+    const category = await createMenuCategory(req.body)
+    res.status(201).json(category)
   } catch (err) { next(err) }
 }
 
-export async function updateCategory(req, res, next) {
+export async function putCategory(req, res, next) {
   try {
-    const data = await editCategory(req.params.id, req.body)
-    res.json(data)
+    const category = await editCategory(req.params.id, req.body)
+    res.json(category)
   } catch (err) { next(err) }
 }
+
+export const createCategory = postCategory
+export const updateCategory = putCategory

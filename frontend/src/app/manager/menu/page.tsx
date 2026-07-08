@@ -4,8 +4,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCategories, MenuItem } from '@/hooks/useMenu'
 import { useAllMenuItems } from '@/hooks/useAllMenuItems'
 import { useCreateItem, useUpdateItem, useToggleAvailability, useDeleteItem, useUploadItemImage } from '@/hooks/useMenuAdmin'
+import type { MenuItemPayload } from '@/hooks/useMenuAdmin'
 import { formatPrice } from '@/utils/format'
 import ItemModal from '@/components/manager/ItemModal'
+import CategoryManagerModal from '@/components/manager/CategoryManagerModal'
 import RefreshButton from '@/components/ui/RefreshButton'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
@@ -28,6 +30,7 @@ export default function MenuManagerPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false)
 
   if (isLoading) return <LoadingSpinner message="Loading menu…" />
   if (error)      return <ErrorMessage message="Could not load menu items." onRetry={() => window.location.reload()} />
@@ -38,7 +41,7 @@ export default function MenuManagerPage() {
     return matchesCategory && matchesSearch
   })
 
-  async function handleSave(data: any) {
+  async function handleSave(data: MenuItemPayload) {
     if (editingItem) {
       return await updateItem.mutateAsync({ id: editingItem.id, data })
     } else {
@@ -74,6 +77,10 @@ export default function MenuManagerPage() {
         </div>
         <div className="flex items-center gap-2 ml-3">
           <RefreshButton onClick={() => qc.invalidateQueries({ queryKey: ['menu-items-all'] })} />
+          <button onClick={() => setCategoryModalOpen(true)}
+            className="px-4 py-2 border border-[#E5E5E5] bg-white text-[#0A0A0A] text-xs font-bold rounded-xl hover:bg-[#F5F5F5] whitespace-nowrap">
+            Manage categories
+          </button>
           <button onClick={() => { setEditingItem(null); setModalOpen(true) }}
             className="px-4 py-2 bg-[#FDC700] text-[#0A0A0A] text-xs font-bold rounded-xl hover:brightness-95 whitespace-nowrap">
             + Add item
@@ -124,6 +131,13 @@ export default function MenuManagerPage() {
           onClose={() => { setModalOpen(false); setEditingItem(null) }}
           onSave={handleSave} onUploadImage={handleUploadImage}
           saving={createItem.isPending || updateItem.isPending} />
+      )}
+
+      {categoryModalOpen && (
+        <CategoryManagerModal
+          categories={categories || []}
+          onClose={() => setCategoryModalOpen(false)}
+        />
       )}
 
       {confirmDelete && (

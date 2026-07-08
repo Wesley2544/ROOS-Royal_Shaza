@@ -7,8 +7,8 @@ import {
   updateItem,
   toggleAvailability,
   deleteItem,
-  createCategory,
-  updateCategory,
+  postCategory,
+  putCategory,
 } from './menu.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { requireRole } from '../middleware/auth.middleware.js'
@@ -47,9 +47,9 @@ menuRouter.delete('/items/:id',
   requireAuth, requireRole('manager'), deleteItem)
 
 menuRouter.post('/categories',
-  requireAuth, requireRole('manager'), createCategory)
+  requireAuth, requireRole('manager'), postCategory)
 
 menuRouter.put('/categories/:id',
-  requireAuth, requireRole('manager'), updateCategory)
+  requireAuth, requireRole('manager'), putCategory)
 menuRouter.post('/items/:id/image', 
   requireAuth, requireRole('manager'), uploadMiddleware, uploadItemImage)

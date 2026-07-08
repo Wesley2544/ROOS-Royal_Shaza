@@ -1,6 +1,12 @@
 'use client'
 import { useState } from 'react'
 import apiClient from '@/lib/apiClient'
+import PasswordInput from '@/components/ui/PasswordInput'
+
+function getApiErrorMessage(err: unknown, fallback: string) {
+  const apiError = err as { response?: { data?: { error?: string } } }
+  return apiError.response?.data?.error || fallback
+}
 
 export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('')
@@ -31,8 +37,8 @@ export default function SettingsPage() {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Could not update password.')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Could not update password.'))
     } finally {
       setLoading(false)
     }
@@ -59,31 +65,22 @@ export default function SettingsPage() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">Current password</label>
-            <input
-              type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required
-              className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-            />
+            <PasswordInput value={currentPassword} onChange={setCurrentPassword} required />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">New password</label>
-            <input
-              type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required
-              placeholder="At least 8 characters"
-              className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-            />
+            <PasswordInput value={newPassword} onChange={setNewPassword} placeholder="At least 8 characters" required />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">Confirm new password</label>
-            <input
-              type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-              className="w-full px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-            />
+            <PasswordInput value={confirmPassword} onChange={setConfirmPassword} required />
           </div>
           <button
-            type="submit" disabled={loading}
+            type="submit"
+            disabled={loading}
             className="w-full py-2.5 bg-[#FDC700] text-[#0A0A0A] rounded-xl text-sm font-bold hover:brightness-95 disabled:opacity-60 mt-2"
           >
-            {loading ? 'Updating…' : 'Update password'}
+            {loading ? 'Updating...' : 'Update password'}
           </button>
         </form>
       </div>
