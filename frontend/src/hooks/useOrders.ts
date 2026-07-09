@@ -47,3 +47,17 @@ export function useUpdateOrderStatus() {
     },
   })
 }
+
+export function useDeleteOrder() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiClient.delete(`/orders/${orderId}`)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order-history'] })
+    },
+  })
+}

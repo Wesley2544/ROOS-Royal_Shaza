@@ -169,3 +169,23 @@ export async function removeItem(id) {
   await prisma.menuItem.update({ where: { id }, data: { is_deleted: true } })
   return { message: 'Item removed from menu' }
 }
+export async function deleteCategory(id) {
+  const category = await prisma.menuCategory.findUnique({ where: { id } })
+  if (!category || !category.is_active) {
+    const err = new Error('Category not found')
+    err.status = 404
+    throw err
+  }
+
+  const itemCount = await prisma.menuItem.count({ where: { category_id: id } })
+  if (itemCount > 0) {
+    const err = new Error(
+      `This category still has ${itemCount} item${itemCount === 1 ? '' : 's'} assigned to it — move or remove them first.`
+    )
+    err.status = 409
+    throw err
+  }
+
+  await prisma.menuCategory.update({ where: { id }, data: { is_active: false } })
+  return { message: 'Category deleted' }
+}

@@ -80,7 +80,7 @@ export default function OrderStatusPage() {
 
   if (loading) return <LoadingSpinner message="Loading your order…" />
   if (error)   return <ErrorMessage message={error} onRetry={() => window.location.reload()} />
-  if (!order)  return <ErrorMessage message="Order not found." />
+  if (!order)  return <ErrorMessage message="Order not found." onRetry={() => router.push(`/menu?table=${tableNumber}`)} />
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">

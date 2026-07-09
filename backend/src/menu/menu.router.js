@@ -9,6 +9,7 @@ import {
   deleteItem,
   postCategory,
   putCategory,
+  removeCategory,
 } from './menu.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { requireRole } from '../middleware/auth.middleware.js'
@@ -51,5 +52,7 @@ menuRouter.post('/categories',
 
 menuRouter.put('/categories/:id',
   requireAuth, requireRole('manager'), putCategory)
+menuRouter.delete('/categories/:id',
+  requireAuth, requireRole('manager'), removeCategory)
 menuRouter.post('/items/:id/image', 
   requireAuth, requireRole('manager'), uploadMiddleware, uploadItemImage)

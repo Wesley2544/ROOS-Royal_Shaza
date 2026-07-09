@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
-import type { Category } from '@/hooks/useMenu'
-import { useCreateCategory, useUpdateCategory } from '@/hooks/useMenuAdmin'
+import { useState, useEffect } from 'react'
+import { Category } from '@/hooks/useMenu'
+import { useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/useMenuAdmin'
 
 interface Props {
   categories: Category[]
@@ -11,34 +11,28 @@ interface Props {
 export default function CategoryManagerModal({ categories, onClose }: Props) {
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
+  const deleteCategory = useDeleteCategory()
 
-  const [draftNames, setDraftNames] = useState<Record<string, string>>({})
+  const [names, setNames] = useState<Record<string, string>>({})
   const [newName, setNewName] = useState('')
   const [error, setError] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [deleteError, setDeleteError] = useState('')
 
-  function getApiErrorMessage(err: unknown, fallback: string) {
-    const apiError = err as { response?: { data?: { error?: string } } }
-    return apiError.response?.data?.error || fallback
-  }
-
-  function getCategoryName(category: Category) {
-    return draftNames[category.id] ?? category.name
-  }
+  useEffect(() => {
+    const initial: Record<string, string> = {}
+    categories.forEach(c => { initial[c.id] = c.name })
+    setNames(initial)
+  }, [categories])
 
   async function handleSave(id: string) {
     setError('')
-    const category = categories.find(item => item.id === id)
-    const name = (draftNames[id] ?? category?.name ?? '').trim()
-    if (!name) {
-      setError('Category name cannot be empty.')
-      return
-    }
-
+    const name = names[id]?.trim()
+    if (!name) { setError('Category name cannot be empty.'); return }
     try {
       await updateCategory.mutateAsync({ id, name })
-      setDraftNames(current => ({ ...current, [id]: name }))
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Could not update category.'))
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Could not update category.')
     }
   }
 
@@ -46,17 +40,25 @@ export default function CategoryManagerModal({ categories, onClose }: Props) {
     e.preventDefault()
     setError('')
     const name = newName.trim()
-    if (!name) {
-      setError('Enter a name for the new category.')
-      return
-    }
-
+    if (!name) { setError('Enter a name for the new category.'); return }
     try {
       await createCategory.mutateAsync(name)
       setNewName('')
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Could not create category.'))
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Could not create category.')
     }
+  }
+
+  function handleConfirmDelete() {
+    if (!deleteTarget) return
+    setDeleteError('')
+    setDeleteTarget(null)
+    deleteCategory.mutate(deleteTarget.id, {
+      onError: (err: any) => {
+        setDeleteError(err.response?.data?.error || 'Could not delete this category.')
+        setDeleteTarget(deleteTarget)
+      },
+    })
   }
 
   return (
@@ -64,39 +66,42 @@ export default function CategoryManagerModal({ categories, onClose }: Props) {
       <div className="bg-white rounded-[18px] shadow-xl w-full max-w-md p-6 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-[#0A0A0A]">Manage categories</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close category manager"
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none"
-          >
-            x
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
         </div>
 
         {error && (
-          <div className="mb-3 px-3 py-2 bg-red-100 border border-red-200 rounded-xl text-xs text-red-800 font-medium">
-            {error}
-          </div>
+          <div className="mb-3 px-3 py-2 bg-red-100 border border-red-200 rounded-xl text-xs text-red-800 font-medium">{error}</div>
         )}
 
         <div className="space-y-2 mb-4">
-          {categories.map(category => (
-            <div key={category.id} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={getCategoryName(category)}
-                onChange={e => setDraftNames({ ...draftNames, [category.id]: e.target.value })}
-                className="flex-1 px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
-              />
-              <button
-                onClick={() => handleSave(category.id)}
-                disabled={updateCategory.isPending || getCategoryName(category).trim() === category.name}
-                className="px-3 py-2 bg-[#FDC700] text-[#0A0A0A] text-xs font-bold rounded-xl hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                Save
-              </button>
-            </div>
-          ))}
+          {categories.map(cat => {
+            const isEmpty = (cat._count?.items ?? 0) === 0
+            return (
+              <div key={cat.id} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={names[cat.id] ?? cat.name}
+                  onChange={e => setNames({ ...names, [cat.id]: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
+                />
+                <button
+                  onClick={() => handleSave(cat.id)}
+                  disabled={updateCategory.isPending || names[cat.id] === cat.name}
+                  className="px-3 py-2 bg-[#FDC700] text-[#0A0A0A] text-xs font-bold rounded-xl hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => { setDeleteTarget({ id: cat.id, name: cat.name }); setDeleteError('') }}
+                  disabled={!isEmpty}
+                  title={isEmpty ? 'Delete this empty category' : 'Only empty categories can be deleted'}
+                  className="px-3 py-2 border border-red-300 bg-white text-red-700 text-xs font-bold rounded-xl hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  Delete
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         <form onSubmit={handleAdd} className="flex items-center gap-2 pt-3 border-t border-[#E5E5E5]">
@@ -104,7 +109,7 @@ export default function CategoryManagerModal({ categories, onClose }: Props) {
             type="text"
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            placeholder="New category name..."
+            placeholder="New category name…"
             className="flex-1 px-3 py-2 border border-[#E5E5E5] rounded-xl text-sm text-[#0A0A0A] bg-white focus:outline-none focus:ring-2 focus:ring-[#FDC700]"
           />
           <button
@@ -112,10 +117,35 @@ export default function CategoryManagerModal({ categories, onClose }: Props) {
             disabled={createCategory.isPending}
             className="px-3 py-2 bg-[#FDC700] text-[#0A0A0A] text-xs font-bold rounded-xl hover:brightness-95 disabled:opacity-60 whitespace-nowrap"
           >
-            {createCategory.isPending ? 'Adding...' : '+ Add'}
+            {createCategory.isPending ? 'Adding…' : '+ Add'}
           </button>
         </form>
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-[18px] shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-sm font-bold text-[#0A0A0A] mb-2">Delete "{deleteTarget.name}"?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              This category is empty and can be safely removed. This won't affect any past orders.
+            </p>
+            {deleteError && (
+              <div className="mb-3 px-3 py-2 bg-red-100 border border-red-200 rounded-xl text-xs text-red-800 font-medium">{deleteError}</div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2 border border-[#E5E5E5] text-gray-600 rounded-xl text-xs font-bold hover:bg-[#F5F5F5]">
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete} disabled={deleteCategory.isPending}
+                className="flex-1 py-2 bg-red-700 text-white rounded-xl text-xs font-bold hover:bg-red-800 disabled:opacity-60"
+              >
+                {deleteCategory.isPending ? 'Deleting…' : 'Delete category'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

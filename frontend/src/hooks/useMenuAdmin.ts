@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/apiClient'
-import { MenuItem } from './useMenu'
+import { MenuItem, Category } from './useMenu'
 
 export interface MenuItemPayload {
   category_id?: string
@@ -76,6 +76,25 @@ export function useUploadItemImage() {
       return res.data
     },
     onSuccess: () => invalidateMenu(qc),
+  })
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => (await apiClient.delete(`/menu/categories/${id}`)).data,
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['categories'] })
+      const previous = qc.getQueryData<Category[]>(['categories'])
+      qc.setQueryData<Category[]>(['categories'], old =>
+        old?.filter(cat => cat.id !== id)
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(['categories'], context.previous)
+    },
+    onSettled: () => invalidateMenu(qc),
   })
 }
 

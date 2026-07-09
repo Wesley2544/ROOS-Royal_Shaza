@@ -8,6 +8,7 @@ import {
   removeItem,
   createCategory as createMenuCategory,
   editCategory,
+  deleteCategory as deleteMenuCategory
 } from './menu.service.js'
 
 export async function getCategories(req, res, next) {
@@ -74,5 +75,10 @@ export async function putCategory(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function removeCategory(req, res, next) {
+  try {
+    res.json(await deleteMenuCategory(req.params.id))
+  } catch (err) { next(err) }
+}
 export const createCategory = postCategory
 export const updateCategory = putCategory

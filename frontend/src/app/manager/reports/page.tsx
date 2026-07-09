@@ -27,9 +27,7 @@ export default function ReportsPage() {
       ['Metric', 'Value'],
       ['Revenue', String(data.revenue_today)],
       ['Total orders', String(data.total_orders)],
-      ['Average order value', String(data.avg_order_value)],
       ['Average wait (minutes)', String(data.avg_wait_minutes)],
-      ['Completion rate (%)', String(data.completion_rate)],
       ['Orders served', String(data.orders_served)],
       [],
       ['Top items', 'Count'],
@@ -50,8 +48,6 @@ export default function ReportsPage() {
     a.click()
     URL.revokeObjectURL(url)
   }
-
-  const maxHour = Math.max(...(data?.orders_by_hour.map(h => h.count) || [1]), 1)
 
   return (
     <div className="p-5">
@@ -75,7 +71,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-4 gap-3 mb-5">
         <div className="bg-white border border-[#E5E5E5] rounded-[18px] p-4 text-center">
           <div className="text-xl font-extrabold text-[#16A34A]">{formatPrice(data?.revenue_today ?? 0)}</div>
           <div className="text-[11px] text-gray-400 mt-1">Total revenue</div>
@@ -85,16 +81,8 @@ export default function ReportsPage() {
           <div className="text-[11px] text-gray-400 mt-1">Total orders</div>
         </div>
         <div className="bg-white border border-[#E5E5E5] rounded-[18px] p-4 text-center">
-          <div className="text-xl font-extrabold text-[#0A0A0A]">{formatPrice(data?.avg_order_value ?? 0)}</div>
-          <div className="text-[11px] text-gray-400 mt-1">Avg order value</div>
-        </div>
-        <div className="bg-white border border-[#E5E5E5] rounded-[18px] p-4 text-center">
           <div className="text-xl font-extrabold text-[#D97706]">{data?.avg_wait_minutes ?? 0} min</div>
           <div className="text-[11px] text-gray-400 mt-1">Avg wait time</div>
-        </div>
-        <div className="bg-white border border-[#E5E5E5] rounded-[18px] p-4 text-center">
-          <div className="text-xl font-extrabold text-[#16A34A]">{data?.completion_rate ?? 0}%</div>
-          <div className="text-[11px] text-gray-400 mt-1">Completion rate</div>
         </div>
         <div className="bg-white border border-[#E5E5E5] rounded-[18px] p-4 text-center">
           <div className="text-xl font-extrabold text-[#0A0A0A]">{data?.orders_served ?? 0}</div>
@@ -103,21 +91,6 @@ export default function ReportsPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white border border-[#E5E5E5] rounded-[18px] p-4">
-          <div className="text-sm font-bold text-[#0A0A0A] mb-3">Orders by hour</div>
-          <div className="flex items-end gap-1 h-28">
-            {data?.orders_by_hour.map(h => (
-              <div key={h.hour} className="flex-1 flex flex-col items-center gap-1">
-                <div
-                  className="w-full bg-[#FDC700] rounded-t"
-                  style={{ height: `${(h.count / maxHour) * 90}px`, minHeight: h.count > 0 ? '3px' : '0px' }}
-                />
-                {h.hour % 3 === 0 && <span className="text-[8px] text-gray-400">{h.hour}</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="bg-white border border-[#E5E5E5] rounded-[18px] p-4">
           <div className="text-sm font-bold text-[#0A0A0A] mb-3">Staff performance</div>
           {(!data?.staff_performance || data.staff_performance.length === 0) ? (

@@ -3,6 +3,7 @@ import {
   fetchOrders,
   fetchOrderById,
   changeOrderStatus,
+  deleteOrder,
   fetchOrderHistory,
 } from './orders.service.js'
 
@@ -34,6 +35,13 @@ export async function updateOrderStatus(req, res, next) {
       req.body.status,
       req.user.userId
     )
+    res.json(data)
+  } catch (err) { next(err) }
+}
+
+export async function deleteOrderById(req, res, next) {
+  try {
+    const data = await deleteOrder(req.params.id)
     res.json(data)
   } catch (err) { next(err) }
 }

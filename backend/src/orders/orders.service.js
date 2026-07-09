@@ -285,6 +285,23 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
   return updated
 }
 
+//  Delete order (manager only) — removes order + all child records (items, status_log, notifications) in a transaction
+export async function deleteOrder(orderId) {
+  // Verify the order exists before attempting deletion
+  const order = await prisma.order.findUnique({ where: { id: orderId } })
+  if (!order) notFound('Order')
+
+  await prisma.$transaction(async (tx) => {
+    // Delete child records in dependency order
+    await tx.notification.deleteMany({ where: { order_id: orderId } })
+    await tx.orderStatusLog.deleteMany({ where: { order_id: orderId } })
+    await tx.orderItem.deleteMany({ where: { order_id: orderId } })
+    await tx.order.delete({ where: { id: orderId } })
+  })
+
+  return { deleted: true, orderId }
+}
+
 //  Order history (manager) (this allows managers to view historical orders for reporting, auditing, and analysis purposes, and to filter by date range to focus on specific time periods)
 export async function fetchOrderHistory({ from, to, limit, offset }) {
   const where = {}

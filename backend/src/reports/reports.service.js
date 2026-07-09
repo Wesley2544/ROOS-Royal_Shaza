@@ -10,7 +10,6 @@ function getDateRange(range) {
   } else if (range === 'month') {
     start.setDate(1)
   }
-  // 'today' (default) — start stays at today 00:00
   return { start, end: now }
 }
 
@@ -18,7 +17,7 @@ export async function fetchSummary(range = 'today') {
   const { start } = getDateRange(range)
 
   const active_orders = await prisma.order.count({
-    where: { status: { not: 'served' } }
+    where: { is_deleted: false, status: { not: 'served' } }
   })
 
   const tables_occupied = await prisma.restaurantTable.count({
@@ -26,7 +25,7 @@ export async function fetchSummary(range = 'today') {
   })
 
   const rangeOrders = await prisma.order.findMany({
-    where: { created_at: { gte: start } },
+    where: { is_deleted: false, created_at: { gte: start } },
     include: {
       items: { include: { menu_item: { include: { category: true } } } },
       waiter: { select: { id: true, name: true } },
@@ -46,12 +45,6 @@ export async function fetchSummary(range = 'today') {
     : 0
 
   const total_orders = rangeOrders.length
-  const avg_order_value = total_orders ? Math.round(
-    rangeOrders.reduce((sum, o) => sum + o.total_amount, 0) / total_orders
-  ) : 0
-  const completion_rate = total_orders
-    ? Math.round((servedOrders.length / total_orders) * 100)
-    : 0
 
   const itemCounts = {}
   rangeOrders.forEach(order => {
@@ -75,14 +68,6 @@ export async function fetchSummary(range = 'today') {
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount)
 
-  // Orders bucketed by hour-of-day (summed across the whole range)
-  const hourBuckets = Array(24).fill(0)
-  rangeOrders.forEach(o => {
-    hourBuckets[new Date(o.created_at).getHours()]++
-  })
-  const orders_by_hour = hourBuckets.map((count, hour) => ({ hour, count }))
-
-  // Staff performance — grouped by the waiter who served each order
   const staffMap = {}
   servedOrders.forEach(o => {
     if (!o.waiter) return
@@ -109,12 +94,9 @@ export async function fetchSummary(range = 'today') {
     avg_wait_minutes,
     revenue_today,
     total_orders,
-    avg_order_value,
-    completion_rate,
     orders_served: servedOrders.length,
     top_items,
     revenue_by_category,
-    orders_by_hour,
     staff_performance,
   }
 }
