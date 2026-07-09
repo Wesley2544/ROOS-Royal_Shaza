@@ -6,9 +6,9 @@ import {
   updateOrderStatus,
   deleteOrderById,
   getOrderHistory,
+  deleteOrder,
 } from './orders.controller.js'
-import { requireAuth } from '../middleware/auth.middleware.js'
-import { requireRole } from '../middleware/auth.middleware.js'
+import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 
 export const ordersRouter = Router()
 

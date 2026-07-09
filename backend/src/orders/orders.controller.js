@@ -5,11 +5,13 @@ import {
   changeOrderStatus,
   deleteOrder,
   fetchOrderHistory,
+  softDeleteOrder,
 } from './orders.service.js'
 
 export async function placeOrder(req, res, next) {
   try {
-    const data = await createOrder(req.body)
+    const { table_id, items, special_notes, session_token } = req.body
+    const data = await createOrder({ table_id, items, special_notes, session_token })
     res.status(201).json(data)
   } catch (err) { next(err) }
 }
@@ -52,5 +54,11 @@ export async function getOrderHistory(req, res, next) {
     const data = await fetchOrderHistory({ from, to,
       limit: parseInt(limit), offset: parseInt(offset) })
     res.json(data)
+  } catch (err) { next(err) }
+}
+
+export async function deleteOrder(req, res, next) {
+  try {
+    res.json(await softDeleteOrder(req.params.id))
   } catch (err) { next(err) }
 }

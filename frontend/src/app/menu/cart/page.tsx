@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/apiClient'
 import { formatPrice } from '@/utils/format'
+import SessionExpired from '@/components/menu/SessionExpired'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { isTableSessionValid } from '@/lib/sessionCheck'
 
 interface CartItem {
   menuItem: { id: string; name: string; price: number }
@@ -16,35 +18,38 @@ export default function CartPage() {
   const router = useRouter()
   const [cart, setCart] = useState<CartData | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
   const [specialNotes, setSpecialNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    const expiresAt = sessionStorage.getItem('table_session_expires_at')
+    if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+      setSessionExpired(true)
+      return
+    }
     try {
       const raw = sessionStorage.getItem('cart')
-      if (!raw) {
-        console.warn('No cart found in sessionStorage — showing fallback instead of hanging.')
-        setNotFound(true)
-        return
-      }
+      if (!raw) { setNotFound(true); return }
       const data: CartData = JSON.parse(raw)
-      if (!data.items || data.items.length === 0) {
-        setNotFound(true)
-        return
-      }
+      if (!data.items || data.items.length === 0) { setNotFound(true); return }
       setCart(data)
       setSpecialNotes(data.specialNotes || '')
-    } catch (err) {
-      console.error('Failed to parse cart from sessionStorage:', err)
+    } catch {
       setNotFound(true)
     }
   }, [])
 
   async function handlePlaceOrder() {
     if (!cart || cart.items.length === 0) return
+    if (!isTableSessionValid(cart.tableNumber)) {
+      setSessionExpired(true)
+      return
+    }
     const tableId = sessionStorage.getItem('table_id')
-    if (!tableId) {
+    const sessionToken = sessionStorage.getItem('table_session_token')
+    if (!tableId || !sessionToken) {
       setError('Table not found. Please scan the QR code again.')
       return
     }
@@ -53,6 +58,7 @@ export default function CartPage() {
     try {
       const res = await apiClient.post('/orders', {
         table_id: tableId,
+        session_token: sessionToken,
         special_notes: specialNotes || undefined,
         items: cart.items.map(i => ({
           menu_item_id: i.menuItem.id,
@@ -60,20 +66,32 @@ export default function CartPage() {
           item_notes: i.itemNotes || undefined,
         })),
       })
+
+      // Extend the session — lets the table order dessert or another
+      // round later without being cut off mid-meal
+      if (res.data.session_token) {
+        sessionStorage.setItem('table_session_token', res.data.session_token)
+        sessionStorage.setItem('table_session_expires_at', res.data.session_expires_at)
+      }
+
       sessionStorage.setItem('current_order', JSON.stringify({
-        orderId: res.data.id,
-        tableNumber: cart.tableNumber,
-        items: cart.items,
-        totalAmount: res.data.total_amount,
+        orderId: res.data.id, tableNumber: cart.tableNumber,
+        items: cart.items, totalAmount: res.data.total_amount,
       }))
       sessionStorage.removeItem('cart')
       router.push(`/order-status?orderId=${res.data.id}&table=${cart.tableNumber}`)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to place order. Please try again.')
+      if (err.response?.data?.code === 'SESSION_EXPIRED') {
+        setSessionExpired(true)
+      } else {
+        setError(err.response?.data?.error || 'Failed to place order. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
   }
+
+  if (sessionExpired) return <SessionExpired tableNumber={cart?.tableNumber} />
 
   if (notFound) {
     return (

@@ -81,13 +81,13 @@ export default function OrderHistoryPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `royal-shaza-orders-${new Date().toISOString().slice(0,10)}.csv`
+    a.download = `royal-shaza-orders-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
 
   if (isLoading) return <LoadingSpinner message="Loading order history…" />
-  if (error)      return <ErrorMessage message="Could not load order history." onRetry={() => window.location.reload()} />
+  if (error) return <ErrorMessage message="Could not load order history." onRetry={() => window.location.reload()} />
 
   const total = data?.total || 0
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1
@@ -133,7 +133,7 @@ export default function OrderHistoryPage() {
           <div className="py-12 text-center text-gray-400 text-sm">No orders match your filters</div>
         ) : (
           filtered.map((o, idx) => {
-            const s = STATUS[o.status]
+            const s = STATUS[o.status as keyof typeof STATUS]
             return (
               <div key={o.id} className={`grid grid-cols-[90px_60px_1fr_100px_100px_140px_80px] px-4 py-3 items-center text-xs border-t border-[#E5E5E5] ${idx % 2 === 1 ? 'bg-[#F5F5F5]' : ''}`}>
                 <span className="font-bold text-[#0A0A0A]">#{o.id.slice(-6).toUpperCase()}</span>
