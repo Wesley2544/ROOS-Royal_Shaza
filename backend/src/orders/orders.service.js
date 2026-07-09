@@ -154,26 +154,13 @@ export async function createOrder(body) {
   return { ...order, session_token: fresh_session_token, session_expires_at }
 }
 
-export async function softDeleteOrder(id) {
-  const order = await prisma.order.findFirst({ where: { id, is_deleted: false } })
-  if (!order || order.is_deleted) {
-    const err = new Error('Order not found')
-    err.status = 404
-    throw err
-  }
-  await prisma.order.update({
-    where: { id },
-    data: { is_deleted: true, deleted_at: new Date() },
-  })
-  return { message: 'Order deleted' }
-}
-
 //  Get orders (role-filtered) — kitchen sees all except served, waiters see all except served, managers see all
 export async function fetchOrders(role) {
-  const where = {
-    is_deleted: false,
-    ...(role === 'kitchen' || role === 'waiter' ? { status: { not: 'served' } } : {}),
-  }
+  const where = role === 'kitchen'
+    ? { status: { not: 'served' } }
+    : role === 'waiter'
+    ? { status: { not: 'served' } }
+    : {}  // manager sees all 
 
   return prisma.order.findMany({
     where,
@@ -189,8 +176,8 @@ export async function fetchOrders(role) {
 
 //  Get single order with details  (this is used for order details view for waiters and managers, and for customers to view their own order history)
 export async function fetchOrderById(id) {
-  const order = await prisma.order.findFirst({
-    where: { id, is_deleted: false },
+  const order = await prisma.order.findUnique({
+    where: { id },
     include: {
       items: true,
       table: { select: { table_number: true } },
@@ -309,7 +296,7 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
 
 //  Order history (manager) (this allows managers to view historical orders for reporting, auditing, and analysis purposes, and to filter by date range to focus on specific time periods)
 export async function fetchOrderHistory({ from, to, limit, offset }) {
-  const where = { is_deleted: false }
+  const where = {}
   if (from || to) {
     where.created_at = {}
     if (from) where.created_at.gte = new Date(from)

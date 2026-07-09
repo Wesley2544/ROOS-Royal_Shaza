@@ -5,9 +5,9 @@ import {
   getOrderById,
   updateOrderStatus,
   getOrderHistory,
-  deleteOrder,
 } from './orders.controller.js'
-import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
+import { requireAuth } from '../middleware/auth.middleware.js'
+import { requireRole } from '../middleware/auth.middleware.js'
 
 export const ordersRouter = Router()
 
@@ -23,9 +23,6 @@ ordersRouter.get('/',
 
 ordersRouter.patch('/:id/status',
   requireAuth, requireRole('kitchen', 'waiter', 'manager'), updateOrderStatus)
-
-ordersRouter.delete('/:id',
-  requireAuth, requireRole('manager'), deleteOrder)
 
 // ── Public — must come AFTER /history, or /history gets eaten ──
 ordersRouter.get('/:id', getOrderById)
