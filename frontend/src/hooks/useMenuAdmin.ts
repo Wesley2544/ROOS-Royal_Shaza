@@ -12,60 +12,68 @@ export function useCreateItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: any) => (await apiClient.post('/menu/items', data)).data,
-    onSuccess:  () => invalidateMenu(qc),
-  })
-}
-
-export function useUpdateItem() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) =>
-      (await apiClient.put(`/menu/items/${id}`, data)).data,
     onSuccess: () => invalidateMenu(qc),
   })
 }
-
-// Optimistic — flips the switch instantly, reverts only if the server rejects it
+export function useUpdateItem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => (await apiClient.put(`/menu/items/${id}`, data)).data,
+    onSuccess: () => invalidateMenu(qc),
+  })
+}
 export function useToggleAvailability() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, is_available }: { id: string; is_available: boolean }) =>
       (await apiClient.patch(`/menu/items/${id}/availability`, { is_available })).data,
-
     onMutate: async ({ id, is_available }) => {
       await qc.cancelQueries({ queryKey: ['menu-items-all'] })
       const previous = qc.getQueryData<MenuItem[]>(['menu-items-all'])
-      qc.setQueryData<MenuItem[]>(['menu-items-all'], old =>
-        old?.map(item => item.id === id ? { ...item, is_available } : item)
-      )
+      qc.setQueryData<MenuItem[]>(['menu-items-all'], old => old?.map(item => item.id === id ? { ...item, is_available } : item))
       return { previous }
     },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) qc.setQueryData(['menu-items-all'], context.previous)
-    },
+    onError: (_err, _vars, context) => { if (context?.previous) qc.setQueryData(['menu-items-all'], context.previous) },
     onSettled: () => invalidateMenu(qc),
   })
 }
-
 export function useDeleteItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => (await apiClient.delete(`/menu/items/${id}`)).data,
-    onSuccess:  () => invalidateMenu(qc),
+    onSuccess: () => invalidateMenu(qc),
   })
 }
-
 export function useUploadItemImage() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, file }: { id: string; file: File }) => {
       const formData = new FormData()
       formData.append('image', file)
-      const res = await apiClient.post(`/menu/items/${id}/image`, formData, {
-        headers: { 'Content-Type': undefined },
-      })
+      const res = await apiClient.post(`/menu/items/${id}/image`, formData, { headers: { 'Content-Type': undefined } })
       return res.data
     },
     onSuccess: () => invalidateMenu(qc),
+  })
+}
+export function useCreateCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (name: string) => (await apiClient.post('/menu/categories', { name })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
+  })
+}
+export function useUpdateCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => (await apiClient.put(`/menu/categories/${id}`, { name })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
+  })
+}
+export function useDeleteCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => (await apiClient.delete(`/menu/categories/${id}`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   })
 }
