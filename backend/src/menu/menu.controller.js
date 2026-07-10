@@ -6,8 +6,9 @@ import {
   editItem,
   setAvailability,
   removeItem,
-  addCategory,
+  createCategory,
   editCategory,
+  deleteCategory,
 } from './menu.service.js'
 
 export async function getCategories(req, res, next) {
@@ -60,11 +61,14 @@ export async function deleteItem(req, res, next) {
   } catch (err) { next(err) }
 }
 
-export async function createCategory(req, res, next) {
-  try {
-    const data = await addCategory(req.body)
-    res.status(201).json(data)
-  } catch (err) { next(err) }
+export async function postCategory(req, res, next) {
+  try { res.status(201).json(await createCategory(req.body)) } catch (err) { next(err) }
+}
+export async function putCategory(req, res, next) {
+  try { res.json(await editCategory(req.params.id, req.body)) } catch (err) { next(err) }
+}
+export async function removeCategory(req, res, next) {
+  try { res.json(await deleteCategory(req.params.id)) } catch (err) { next(err) }
 }
 
 export async function updateCategory(req, res, next) {

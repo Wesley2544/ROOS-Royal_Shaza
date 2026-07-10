@@ -9,6 +9,7 @@ import ItemModal from '@/components/manager/ItemModal'
 import RefreshButton from '@/components/ui/RefreshButton'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
+import CategoryManagerModal from '@/components/manager/CategoryManagerModal'
 
 const GRID_COLS = '56px 1fr 90px 80px 110px 70px 90px'
 
@@ -28,6 +29,7 @@ export default function MenuManagerPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false)
 
   if (isLoading) return <LoadingSpinner message="Loading menu…" />
   if (error)      return <ErrorMessage message="Could not load menu items." onRetry={() => window.location.reload()} />
@@ -78,6 +80,9 @@ export default function MenuManagerPage() {
             className="px-4 py-2 bg-[#FDC700] text-[#0A0A0A] text-xs font-bold rounded-xl hover:brightness-95 whitespace-nowrap">
             + Add item
           </button>
+          <button onClick={() => setCategoryModalOpen(true)} className="px-4 py-2 border border-[#E5E5E5] bg-white text-[#0A0A0A] text-xs font-bold rounded-xl hover:bg-[#F5F5F5] whitespace-nowrap">
+            Manage categories
+          </button>
         </div>
       </div>
 
@@ -124,6 +129,9 @@ export default function MenuManagerPage() {
           onClose={() => { setModalOpen(false); setEditingItem(null) }}
           onSave={handleSave} onUploadImage={handleUploadImage}
           saving={createItem.isPending || updateItem.isPending} />
+      )}
+      {categoryModalOpen && (
+        <CategoryManagerModal categories={categories || []} onClose={() => setCategoryModalOpen(false)} />
       )}
 
       {confirmDelete && (

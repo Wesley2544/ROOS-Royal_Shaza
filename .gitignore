@@ -20,3 +20,4 @@ Thumbs.db
 npm-debug.log*
 # Test coverage output — don't commit this
 coverage/
+/.refact/

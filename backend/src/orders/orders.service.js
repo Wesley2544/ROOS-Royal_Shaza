@@ -157,10 +157,10 @@ export async function createOrder(body) {
 //  Get orders (role-filtered) — kitchen sees all except served, waiters see all except served, managers see all
 export async function fetchOrders(role) {
   const where = role === 'kitchen'
-    ? { status: { not: 'served' } }
+    ? { is_deleted: false, status: { not: 'served' } }
     : role === 'waiter'
-    ? { status: { not: 'served' } }
-    : {}  // manager sees all 
+    ? { is_deleted: false, status: { not: 'served' } }
+    : { is_deleted: false }  // manager sees all 
 
   return prisma.order.findMany({
     where,
@@ -177,7 +177,7 @@ export async function fetchOrders(role) {
 //  Get single order with details  (this is used for order details view for waiters and managers, and for customers to view their own order history)
 export async function fetchOrderById(id) {
   const order = await prisma.order.findUnique({
-    where: { id },
+    where: { is_deleted: false, id },
     include: {
       items: true,
       table: { select: { table_number: true } },
@@ -296,7 +296,7 @@ export async function changeOrderStatus(orderId, newStatus, userId) {
 
 //  Order history (manager) (this allows managers to view historical orders for reporting, auditing, and analysis purposes, and to filter by date range to focus on specific time periods)
 export async function fetchOrderHistory({ from, to, limit, offset }) {
-  const where = {}
+  const where = { is_deleted: false }
   if (from || to) {
     where.created_at = {}
     if (from) where.created_at.gte = new Date(from)
@@ -318,4 +318,29 @@ export async function fetchOrderHistory({ from, to, limit, offset }) {
   ])
 
   return { orders, total, limit, offset }
+}
+// Soft delete order (this allows managers to remove test or erroneous orders from the system without permanently deleting them, preserving the integrity of the order history and allowing for potential recovery if needed)
+export async function softDeleteOrder(id) {
+  const order = await prisma.order.findUnique({ where: { id } })
+  if (!order || order.is_deleted) {
+    const err = new Error('Order not found')
+    err.status = 404
+    throw err
+  }
+
+  await prisma.order.update({
+    where: { id },
+    data: { is_deleted: true, deleted_at: new Date() },
+  })
+
+  // Reset the table so a deleted test order doesn't leave it stuck
+  // looking occupied with nothing left to show for it.
+  if (order.table_id) {
+    await prisma.restaurantTable.update({
+      where: { id: order.table_id },
+      data: { status: 'free' },
+    }).catch(() => {}) // best-effort — never blocks the delete itself
+  }
+
+  return { message: 'Order deleted' }
 }

@@ -25,25 +25,28 @@ export interface Order {
 export function useOrders() {
   return useQuery<Order[]>({
     queryKey: ['orders'],
-    queryFn:  async () => {
-      const res = await apiClient.get('/orders')
-      return res.data
-    },
-    staleTime:      0,
-    refetchInterval: 120000, // 120s fallback poll in case Socket misses an event
+    queryFn: async () => (await apiClient.get('/orders')).data,
+    staleTime: 0,
+    refetchInterval: 120000,
   })
 }
-
 export function useUpdateOrderStatus() {
-  const queryClient = useQueryClient()
-
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
-      const res = await apiClient.patch(`/orders/${orderId}/status`, { status })
-      return res.data
-    },
+    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) =>
+      (await apiClient.patch(`/orders/${orderId}/status`, { status })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+  })
+}
+export function useDeleteOrder() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => (await apiClient.delete(`/orders/${id}`)).data,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      qc.invalidateQueries({ queryKey: ['order-history'] })
+      qc.invalidateQueries({ queryKey: ['report-summary'] })
+      qc.invalidateQueries({ queryKey: ['tables'] })
     },
   })
 }
