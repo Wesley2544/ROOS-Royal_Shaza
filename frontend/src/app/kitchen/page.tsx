@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOrders, useUpdateOrderStatus } from '@/hooks/useOrders'
 import { useTicker } from '@/hooks/useTicker'
@@ -7,18 +7,16 @@ import { useAuth } from '@/hooks/useAuth'
 import { connectSocket } from '@/lib/socket'
 import { playNewOrderAlert } from '@/lib/audioAlert'
 import OrderCard from '@/components/kitchen/OrderCard'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
-import ErrorMessage   from '@/components/ui/ErrorMessage'
 import RefreshButton from '@/components/ui/RefreshButton'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import ErrorMessage from '@/components/ui/ErrorMessage'
 
 export default function KitchenPage() {
-  const { user, logout } = useAuth(['kitchen', 'manager'])
+  const { logout } = useAuth(['kitchen', 'manager'])
   const queryClient = useQueryClient()
   const { data: orders, isLoading, error } = useOrders()
   const updateStatus = useUpdateOrderStatus()
-
   const [clock, setClock] = useState('')
-  const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
 
   useTicker(1000)
 
@@ -31,15 +29,17 @@ export default function KitchenPage() {
 
   useEffect(() => {
     const socket = connectSocket('kitchen')
-    socketRef.current = socket
     socket.on('new_order', () => {
       playNewOrderAlert()
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     })
-    socket.on('order_served', () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
-    })
-    return () => { socket.off('new_order'); socket.off('order_served') }
+    socket.on('order_served', () => queryClient.invalidateQueries({ queryKey: ['orders'] }))
+    socket.on('order_status_updated', () => queryClient.invalidateQueries({ queryKey: ['orders'] }))
+    return () => {
+      socket.off('new_order')
+      socket.off('order_served')
+      socket.off('order_status_updated')
+    }
   }, [queryClient])
 
   function handleAdvance(orderId: string, nextStatus: string) {
@@ -49,16 +49,14 @@ export default function KitchenPage() {
   const activeOrders = (orders?.filter(o => o.status !== 'served') || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
-  const newCount       = activeOrders.filter(o => o.status === 'new').length
-  const preparingCount = activeOrders.filter(o => o.status === 'preparing').length
-  const readyCount     = activeOrders.filter(o => o.status === 'ready').length
+  const newCount = activeOrders.filter(o => o.status === 'new').length
+  const inProgressCount = activeOrders.length - newCount
 
   if (isLoading) return <LoadingSpinner message="Loading kitchen queue…" />
   if (error)      return <ErrorMessage message="Could not load orders." onRetry={() => window.location.reload()} />
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
-
       <div className="bg-white border-b border-[#E5E5E5] px-5 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <span className="text-base font-extrabold text-[#0A0A0A]">🍳 Kitchen display</span>
@@ -66,11 +64,10 @@ export default function KitchenPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-gray-500">{clock}</span>
-          <span className="bg-red-200 text-red-800 text-[11px] font-bold px-2.5 py-1 rounded-full">{newCount} new</span>
-          <span className="bg-amber-200 text-amber-800 text-[11px] font-bold px-2.5 py-1 rounded-full">{preparingCount} preparing</span>
-          <span className="bg-green-200 text-green-800 text-[11px] font-bold px-2.5 py-1 rounded-full">{readyCount} ready</span>
           <RefreshButton onClick={() => queryClient.invalidateQueries({ queryKey: ['orders'] })} />
-<button onClick={logout} className="text-xs text-gray-400 hover:text-gray-600 ml-2">Sign out</button>
+          <span className="bg-red-200 text-red-800 text-[11px] font-bold px-2.5 py-1 rounded-full">{newCount} new</span>
+          <span className="bg-amber-200 text-amber-800 text-[11px] font-bold px-2.5 py-1 rounded-full">{inProgressCount} in progress</span>
+          <button onClick={logout} className="text-xs text-gray-400 hover:text-gray-600 ml-2">Sign out</button>
         </div>
       </div>
 

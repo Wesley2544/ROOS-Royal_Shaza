@@ -1,5 +1,5 @@
-const STEPS = ['Received', 'Preparing', 'On the way', 'Served']
-const STATUS_STEP: Record<string, number> = { new:0, preparing:1, ready:2, served:3 }
+const STEPS = ['Order sent', 'Order received', 'Order served']
+const STATUS_STEP: Record<string, number> = { new: 0, preparing: 1, ready: 1, served: 2 }
 
 export default function StatusProgressBar({ status }: { status: string }) {
   const currentStep = STATUS_STEP[status] ?? 0

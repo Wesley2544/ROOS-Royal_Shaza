@@ -15,9 +15,11 @@ export function getElapsedTime(createdAt: string): string {
 }
 
 export function getUrgencyLevel(createdAt: string, status: string): string {
+  if (status === 'served') return 'low'
   const mins = getElapsedMinutes(createdAt)
-  if (status === 'new'       && mins >= 3) return 'high'
-  if (status === 'preparing' && mins >= 8) return 'medium'
+  if (status === 'new' && mins >= 3) return 'high' // nobody's acknowledged it yet — most urgent
+  if (mins >= 10) return 'high'
+  if (mins >= 5) return 'medium'
   return 'low'
 }
 
@@ -26,5 +28,5 @@ export function getUrgencyColor(level: string): string {
 }
 
 export function getStatusLabel(status: string): string {
-  return { new:'New', preparing:'Preparing', ready:'Ready', served:'Served' }[status] || status
+  return { new: 'Sent', preparing: 'Received', ready: 'Received', served: 'Served' }[status] || status
 }

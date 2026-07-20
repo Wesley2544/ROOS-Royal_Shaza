@@ -17,8 +17,8 @@ const orderSchema = z.object({
 
 //  State machine for order status transitions (only allow valid progressions to prevent accidental skips or regressions)
 const ALLOWED_TRANSITIONS = {
-  new:       ['preparing'],
-  preparing: ['ready'],
+  new:       ['served'],
+  preparing: ['served'],
   ready:     ['served'],
   served:    [],
 }

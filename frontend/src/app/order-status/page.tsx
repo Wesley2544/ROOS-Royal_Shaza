@@ -17,14 +17,16 @@ interface Order {
 }
 
 const STATUS_MESSAGES: Record<string, string> = {
-  new: 'Your order has been received. The kitchen has been notified.',
-  preparing: 'Your food is being prepared in the kitchen.',
-  ready: 'Your food is on its way to your table!',
+  new: 'Your order has been sent to the kitchen.',
+  preparing: 'Your order has been received! We are working on it-Thanks for you patience.',
+  ready: 'Your order has been received! We are working on it-Thanks for you patience.',
   served: 'Your order has been served. Enjoy your meal!',
 }
 const STATUS_HEADINGS: Record<string, string> = {
-  new: 'Order received', preparing: 'Being prepared in kitchen',
-  ready: 'On its way to your table', served: 'Served — enjoy your meal!',
+  new: 'Order sent',
+  preparing: 'Order received',
+  ready: 'Order Received',
+  served: 'Served — enjoy your meal!',
 }
 
 export default function OrderStatusPage() {

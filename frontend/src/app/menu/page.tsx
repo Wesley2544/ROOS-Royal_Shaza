@@ -12,6 +12,7 @@ import SessionExpired from '@/components/menu/SessionExpired'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage   from '@/components/ui/ErrorMessage'
 import { isTableSessionValid } from '@/lib/sessionCheck'
+import { useSwipe } from '@/hooks/useSwipe'
 
 export default function MenuPage() {
   const router       = useRouter()
@@ -107,7 +108,20 @@ export default function MenuPage() {
   }))
   router.push('/menu/cart')
 
+ }
+  function goToAdjacentCategory(direction: 1 | -1) {
+   if (!categories || categories.length === 0 || !activeCategoryId) return
+   const idx = categories.findIndex(c => c.id === activeCategoryId)
+   if (idx === -1) return
+   const nextIdx = idx + direction
+   if (nextIdx < 0 || nextIdx >= categories.length) return // stops at the ends, no wraparound
+   setActiveCategoryId(categories[nextIdx].id)
   }
+
+  const swipeHandlers = useSwipe(
+   () => goToAdjacentCategory(1),
+  () => goToAdjacentCategory(-1)
+  )
 
   if (!sessionChecked || catsLoading) return <LoadingSpinner message="Loading menu…" />
   if (sessionExpired) return <SessionExpired tableNumber={tableNumber} />
@@ -133,7 +147,7 @@ export default function MenuPage() {
         />
       )}
 
-      <div className="bg-white mt-2 rounded-[18px] mx-2 shadow-sm border border-[#E5E5E5] overflow-hidden">
+      <div className="bg-white mt-2 rounded-[18px] mx-2 shadow-sm border border-[#E5E5E5] overflow-hidden" {...swipeHandlers}>
         {itemsLoading ? (
           <LoadingSpinner message="Loading items…" />
         ) : items && items.length > 0 ? (

@@ -16,8 +16,11 @@ interface OrderDetail {
 const BADGE_STYLE: Record<string, string> = {
   new: 'bg-red-200 text-red-800',
   preparing: 'bg-amber-200 text-amber-800',
-  ready: 'bg-green-200 text-green-800',
+  ready: 'bg-amber-200 text-amber-800',
   served: 'bg-gray-100 text-gray-500',
+}
+const BADGE_LABEL: Record<string, string> = {
+  new: 'Sent', preparing: 'Received', ready: 'Received', served: 'Served',
 }
 
 export default function WaiterOrderDetailPage() {
@@ -44,33 +47,37 @@ export default function WaiterOrderDetailPage() {
     load()
   }, [orderId])
 
-  async function handleMarkServed() {
+  async function handleAction() {
+    if (!order) return
+    const nextStatus = order.status === 'new' ? 'preparing' : 'served'
     try {
-      await updateStatus.mutateAsync({ orderId, status: 'served' })
-      router.push('/waiter')
+      await updateStatus.mutateAsync({ orderId, status: nextStatus })
+      if (nextStatus === 'served') {
+        router.push('/waiter')
+      } else {
+        setOrder({ ...order, status: 'preparing' })
+      }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Could not mark as served.')
+      setError(err.response?.data?.error || 'Could not update this order.')
     }
   }
 
   if (loading) return <LoadingSpinner message="Loading order…" />
   if (error)   return <ErrorMessage message={error} onRetry={() => window.location.reload()} />
-  if (!order)  return <ErrorMessage message="Order not found." onRetry={() => window.location.reload()} />
+  if (!order)  return <ErrorMessage message="Order not found." onRetry={() => window.location.reload()}/>
 
-  const canServe = order.status === 'ready'
+  const isNew = order.status === 'new'
+  const isServed = order.status === 'served'
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
       <div className="sticky top-0 z-10 bg-white border-b border-[#E5E5E5] px-4 py-3 flex items-center justify-between">
         <button onClick={() => router.back()} className="text-sm font-bold text-[#0A0A0A]">← Orders</button>
         <span className="text-base font-extrabold text-[#0A0A0A]">Table {order.table.table_number} · #{order.id.slice(-6).toUpperCase()}</span>
-        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${BADGE_STYLE[order.status]}`}>
-          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-        </span>
+        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${BADGE_STYLE[order.status]}`}>{BADGE_LABEL[order.status]}</span>
       </div>
 
       <div className="px-4 py-4 space-y-3">
-
         <div className="bg-white rounded-[18px] border border-[#E5E5E5] shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-[#E5E5E5]">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Order items</span>
@@ -93,27 +100,23 @@ export default function WaiterOrderDetailPage() {
         {order.special_notes && (
           <div className="bg-white rounded-[18px] border border-[#E5E5E5] shadow-sm p-4">
             <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Customer notes</div>
-            <div className="text-sm text-amber-800 italic bg-amber-100 border-l-[3px] border-amber-500 px-3 py-2 rounded">
-              {order.special_notes}
-            </div>
+            <div className="text-sm text-amber-800 italic bg-amber-100 border-l-[3px] border-amber-500 px-3 py-2 rounded">{order.special_notes}</div>
           </div>
         )}
 
         <div className="pt-2">
-          {canServe ? (
-            <>
-              <p className="text-xs text-gray-400 mb-2 text-center">Food is ready at the pass — collect and deliver to the table</p>
-              <button
-                onClick={handleMarkServed} disabled={updateStatus.isPending}
-                className="w-full py-3.5 bg-green-700 text-white rounded-[18px] font-bold text-sm hover:bg-green-800 disabled:opacity-60 transition-colors"
-              >
-                {updateStatus.isPending ? 'Updating…' : 'Mark as served ✓'}
-              </button>
-            </>
+          {isServed ? (
+            <p className="text-xs text-gray-400 text-center py-3">This order has already been served.</p>
           ) : (
-            <p className="text-xs text-gray-400 text-center py-3">
-              {order.status === 'served' ? 'This order has already been served.' : 'Waiting for the kitchen to mark this order ready.'}
-            </p>
+            <button
+              onClick={handleAction}
+              disabled={updateStatus.isPending}
+              className={`w-full py-3.5 rounded-[18px] font-bold text-sm disabled:opacity-60 transition-colors ${
+                isNew ? 'bg-[#FDC700] text-[#0A0A0A] hover:brightness-95' : 'bg-green-700 text-white hover:bg-green-800'
+              }`}
+            >
+              {updateStatus.isPending ? 'Updating…' : isNew ? 'Order received' : 'Mark as served ✓'}
+            </button>
           )}
         </div>
       </div>
