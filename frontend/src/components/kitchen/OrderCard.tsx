@@ -3,21 +3,17 @@ import { getElapsedTime, getUrgencyLevel, getUrgencyColor } from '@/utils/format
 import { STATUS } from '@/lib/statusStyles'
 
 interface Props {
-  order:      Order
-  onAdvance:  (orderId: string, nextStatus: string) => void
+  order: Order
+  onAdvance: (orderId: string, nextStatus: string) => void
   isUpdating: boolean
 }
 
-const NEXT_STATUS: Record<string, string> = { new: 'preparing', preparing: 'ready' }
-const BUTTON_LABEL: Record<string, string> = { new: 'Start preparing', preparing: 'Mark ready', ready: 'Waiting for waiter' }
-
 export default function OrderCard({ order, onAdvance, isUpdating }: Props) {
-  const urgency        = getUrgencyLevel(order.created_at, order.status)
-  const urgencyColor   = getUrgencyColor(urgency)
-  const elapsed        = getElapsedTime(order.created_at)
-  const nextStatus     = NEXT_STATUS[order.status]
-  const buttonDisabled = order.status === 'ready' || isUpdating
+  const urgency      = getUrgencyLevel(order.created_at, order.status)
+  const urgencyColor = getUrgencyColor(urgency)
+  const elapsed       = getElapsedTime(order.created_at)
   const s = STATUS[order.status]
+  const isNew = order.status === 'new'
 
   return (
     <div className="bg-white rounded-[18px] overflow-hidden border border-[#E5E5E5] shadow-sm">
@@ -52,14 +48,23 @@ export default function OrderCard({ order, onAdvance, isUpdating }: Props) {
 
       <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-[#E5E5E5]">
         <span className="text-xs font-extrabold font-mono" style={{ color: urgencyColor }}>{elapsed}</span>
-        <button
-          onClick={() => nextStatus && onAdvance(order.id, nextStatus)}
-          disabled={buttonDisabled}
-          className={`text-[11px] font-bold px-3 py-1.5 rounded-xl transition-colors
-            ${buttonDisabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#FDC700] text-[#0A0A0A] hover:brightness-95'}`}
-        >
-          {BUTTON_LABEL[order.status]}
-        </button>
+        {isNew ? (
+          <button
+            onClick={() => onAdvance(order.id, 'preparing')}
+            disabled={isUpdating}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-[#FDC700] text-[#0A0A0A] hover:brightness-95 disabled:opacity-60"
+          >
+            {isUpdating ? 'Updating…' : 'Order received'}
+          </button>
+        ) : (
+          <button
+            onClick={() => onAdvance(order.id, 'served')}
+            disabled={isUpdating}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-green-700 text-white hover:bg-green-800 disabled:opacity-60"
+          >
+            {isUpdating ? 'Updating…' : 'Mark as served ✓'}
+          </button>
+        )}
       </div>
     </div>
   )

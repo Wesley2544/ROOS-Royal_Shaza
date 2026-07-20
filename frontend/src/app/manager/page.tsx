@@ -36,7 +36,7 @@ export default function ManagerDashboardPage() {
   }, [queryClient])
 
   if (isLoading) return <LoadingSpinner message="Loading dashboard…" />
-  if (error)      return <ErrorMessage message="Could not load dashboard data." onRetry={() => window.location.reload()} />
+  if (error) return <ErrorMessage message="Could not load dashboard data." onRetry={() => window.location.reload()} />
 
   const activeOrders = (orders?.filter(o => o.status !== 'served') || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -135,14 +135,13 @@ export default function ManagerDashboardPage() {
           <div className="grid grid-cols-4 gap-1.5">
             {tables?.map(table => {
               const active = table.orders.find(o => o.status !== 'served')
-              const isReady = active?.status === 'ready'
-              const key = isReady ? 'ready' : table.status === 'free' ? 'free' : 'ordering'
+              const key = active ? 'ordering' : 'free'
               const s = STATUS[key]
               return (
                 <div key={table.id} className={`rounded-lg px-1.5 py-1.5 text-center ${s.bg}`}>
-                  <div className={`text-xs font-bold ${s.text}`}>T{table.table_number}</div>
-                  <div className={`text-[9px] mt-0.5 ${s.text}`}>{isReady ? 'Ready' : table.status === 'free' ? 'Free' : 'Active'}</div>
-                </div>
+                 <div className={`text-xs font-bold ${s.text}`}>T{table.table_number}</div>
+                 <div className={`text-[9px] mt-0.5 ${s.text}`}>{active ? 'Active' : 'Free'}</div>
+               </div>
               )
             })}
           </div>
